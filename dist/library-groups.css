@@ -1,0 +1,29 @@
+.library-groups { display: grid; gap: 10px; }
+.library-group { min-width: 0; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel); }
+.library-group-head { display: flex; align-items: center; gap: 6px; padding: 3px 12px 3px 3px; }
+.library-group-toggle, .library-group-pick { appearance: none; background: transparent; border: 0; font: inherit; cursor: pointer; }
+.library-group-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 9px; text-align: start; border-radius: var(--r-lg); color: var(--text); }
+.library-group-toggle:hover { background: var(--raised); }
+.library-group-toggle:focus-visible, .library-group-pick:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.library-group-symbol { display: grid; place-items: center; flex: none; width: 34px; height: 34px; background: var(--accent-soft); color: var(--accent); border-radius: 9px; }
+.library-group-label { min-width: 0; display: grid; gap: 2px; }
+.library-group-label strong, .library-group-label small { min-width: 0; overflow-wrap: anywhere; }
+.library-group-label strong { font-weight: 600; font-size: 14px; }
+.library-group-label small, .library-group-count { color: var(--muted); font-size: 12px; }
+.library-group-count { margin-left: auto; white-space: nowrap; }
+.library-group-toggle > svg { flex: none; color: var(--muted); }
+.library-group-toggle[aria-expanded="true"] > svg { transform: rotate(90deg); }
+.library-group-pick { flex: none; min-height: 38px; padding: 0 12px; color: var(--text-2); font-size: 12px; border-left: 1px solid var(--line); border-radius: 0; }
+.library-group-pick:hover, .library-group-pick[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.library-group-body:not([hidden]) { padding: 14px; border-top: 1px solid var(--line); }
+.library-group-body .asset-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 192px), 1fr)); }
+.library-more { width: 100%; margin-top: 12px; }
+@media (max-width: 650px) {
+  .library-group-head { gap: 0; padding-right: 4px; }
+  .library-group-toggle { gap: 7px; }
+  .library-group-symbol { width: 28px; height: 28px; }
+  .library-group-body:not([hidden]) { padding: 10px; }
+  .library-group-body .asset-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .library-group-body .asset-list .asset-card { grid-template-columns: 76px minmax(0,1fr); padding: 8px; gap: 4px 8px; }
+  .library-group-body .asset-list .asset-tags { display: none; }
+}

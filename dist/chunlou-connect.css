@@ -1,0 +1,43 @@
+body { margin: 0; min-height: 100vh; height: auto; overflow: auto; background: var(--bg); color: var(--text); font-family: var(--font-sans); }
+.account-connect { margin: auto; max-width: 42rem; padding: clamp(24px, 5vw, 70px) 22px; }
+.account-connect [hidden] { display: none; }
+.account-connect a { color: var(--accent-text); }
+.account-connect .back { color: var(--text-2); font-size: 14px; text-decoration: none; }
+.account-connect header { margin: 30px 0 22px; }
+.account-connect h1 { font: 650 clamp(29px, 5vw, 40px) / 1.25 var(--font-serif); }
+.account-connect h2 { font-size: 17px; }
+.account-connect kbd { font: 12px var(--font-mono); color: var(--text); white-space: nowrap; }
+.account-connect p { margin: 6px 0; color: var(--text-2); font-size: 14px; line-height: 1.65; }
+.connect-steps { margin: 0; padding: 0 22px 0 48px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--r); list-style: decimal; }
+.connect-steps li { padding: 19px 0 20px 5px; }
+.connect-steps li + li { border-top: 1px solid var(--line); }
+.connect-steps li::marker { color: var(--muted); font-family: var(--font-mono); }
+.account-connect button, .account-connect .bookmark { display: inline-block; margin-top: 8px; padding: 8px 13px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--raised); color: var(--text); font: 550 14px var(--font-sans); cursor: pointer; }
+.account-connect .bookmark { border: 1px dashed var(--accent-line); background: var(--accent-soft); color: var(--accent-text); text-decoration: none; cursor: grab; }
+.account-connect .primary { background: var(--accent); border-color: var(--accent); color: var(--on-primary); }
+.account-connect button:disabled, .account-connect .bookmark:not([href]) { opacity: .45; cursor: default; }
+.account-connect :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.account-connect .feedback { margin-top: 16px; }
+.account-connect #status[data-state="saved"] { color: var(--accent-text); }
+.account-connect #status[data-state="error"], .account-connect #status[data-state="unavailable"] { color: var(--warn-text); }
+body[data-flow="confirm"] .setup-only { display: none; }
+body[data-flow="install"] .confirm-step { display: none; }
+body[data-flow="confirm"] .connect-steps { list-style: none; padding-inline: 22px; }
+body[data-flow="confirm"] .connect-steps .confirm-step { padding-inline: 0; border-top: 0; }
+.install-actions { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 14px; }
+.account-connect .bookmark::before { content: "拖到书签栏 · "; font-weight: 400; }
+.account-connect .file-action, .account-connect .inline-action {
+  display: inline-block; padding: 2px 0; font: inherit; font-size: 14px; color: var(--accent-text);
+  background: none; border: 0; margin: 0; text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+.account-connect .inline-action { margin-inline: 3px; }
+.account-connect .file-action[aria-disabled="true"] { opacity: .45; cursor: default; }
+.account-connect .inline-feedback:empty { margin: 0; }
+.account-connect .inline-feedback:not(:empty) { margin-top: 8px; padding: 6px 10px; border-left: 2px solid var(--accent); color: var(--text); }
+.account-connect #panel-link { display: block; width: 100%; margin-top: 5px; }
+.account-connect #panel-link[hidden] { display: none; }
+.account-connect details { font-size: 13px; margin-top: 10px; }
+.account-connect details summary { color: var(--text-2); cursor: pointer; }
+.account-connect details p { font-size: inherit; }
+.account-connect #bookmark-address { display:block; box-sizing:border-box; width:100%; padding:7px; }
+.feedback a + a:not([hidden]), .feedback button:not([hidden]) ~ a:not([hidden]) { margin-inline-start: 10px; }

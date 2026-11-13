@@ -1,0 +1,53 @@
+.studio-preview-selectors {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  min-width: 0;
+}
+.studio-preview-selectors .studio-preview-pick {
+  flex: 1 1 9rem;
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.studio-preview-selectors .studio-preview-pick .select { width: 100%; min-width: 0; }
+.studio-batch-name { padding: 0 6px; font-size: 14px; overflow-wrap: anywhere; }
+.real-processing .process-pick-item {
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+}
+.real-processing .process-pick-item input { position: static; justify-self: center; }
+.real-processing .process-pick-item.is-previewing { border-color: var(--accent); }
+.real-processing .process-pick-item.is-previewing img { box-shadow: none; }
+.studio-pick-preview {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.studio-pick-preview > span { display: grid; gap: 2px; min-width: 0; }
+.studio-pick-preview small { line-height: 1.4; }
+.studio-glyph-tool { display: grid; gap: 6px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.studio-glyph-tool .btn { width: 100%; color: var(--accent-text); }
+.studio-glyph-tool p { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+@media (max-width: 650px) {
+  .studio-preview-selectors { width: 100%; }
+  .real-processing .studio-stage .processing-preview-area { min-height: 0; padding: 8px; }
+}
+@media (max-width: 1180px) {
+  .real-processing .studio-stage { display: contents; }
+  .real-processing .processing-preview-heading { order: 0; padding: 14px 16px; }
+  .real-processing .process-picker { order: 1; border-top: 1px solid var(--line); }
+  .real-processing .studio-stage > :not(.processing-preview-heading) { order: 2; margin: 10px 16px; }
+  .real-processing .studio-inspector { order: 3; }
+}

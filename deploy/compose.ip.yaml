@@ -1,0 +1,5 @@
+# Apply AFTER compose.production.yaml. In this mode FRAMEKEEP_DOMAIN is the public IPv4.
+services:
+  caddy:
+    volumes:
+      - ./Caddyfile.ip:/etc/caddy/Caddyfile:ro

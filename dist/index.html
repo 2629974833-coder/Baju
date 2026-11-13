@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0B0B0A" />
+    <script>
+      try {
+        const theme = localStorage.getItem("framekeep-theme");
+        if (theme === "light" || theme === "dark") {
+          document.documentElement.dataset.theme = theme;
+          if (theme === "light") document.querySelector('meta[name="theme-color"]').content = "#F8F7F2";
+        }
+      } catch {}
+    </script>
+    <meta
+      name="description"
+      content="拾帧 Framekeep：从一条链接到整部剧的个人媒体工作台。"
+    />
+    <title>拾帧 Framekeep</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="preload" href="assets/fonts/geist.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="assets/fonts/framekeep-serif.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="sites-view.css" />
+    <link rel="stylesheet" href="workflow-view.css" />
+    <link rel="stylesheet" href="real-session.css?v=2" />
+    <link rel="stylesheet" href="framekeep.css?v=3" />
+    <link rel="stylesheet" href="series-library.css" />
+    <link rel="stylesheet" href="intake-workflow.css" />
+    <link rel="stylesheet" href="intake-results.css" />
+    <link rel="stylesheet" href="studio-batch.css" />
+    <link rel="stylesheet" href="discovery-records.css" />
+    <link rel="stylesheet" href="discovery-browse.css" />
+    <link rel="stylesheet" href="library-groups.css" />
+    <link rel="stylesheet" href="public-workspace.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="overlay-root"></div>
+    <div id="toast-root" role="status" aria-live="polite"></div>
+    <script type="module" src="app.js?v=20261113-public-download-2"></script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+{$FRAMEKEEP_DOMAIN} {
+	request_body {
+		max_size 8MB
+	}
+	# Caddy preserves Host, Authorization and Range for this HTTP upstream.
+	# Its default handling discards untrusted incoming X-Forwarded-* values.
+	reverse_proxy framekeep:4173 {
+		header_up X-Forwarded-Proto {scheme}
+		# Send ZIP chunks and media as they arrive, without a complete archive buffer.
+		flush_interval -1
+	}
+}

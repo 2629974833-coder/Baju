@@ -1,0 +1,85 @@
+/* Series browsing keeps each show together, with the episode sheet opened on demand. */
+.series-source-group { margin: 22px 0 0; min-width: 0; }
+.series-source-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.series-source-heading h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-sans); font-size: 14px; font-weight: 600; }
+.series-source-heading h2 svg { color: var(--muted); }
+.series-source-heading > span { color: var(--faint); font-size: 12px; }
+.series-source-group .series-library { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: 14px; align-items: start; }
+.series-source-group .series-card { min-width: 0; padding: 16px; gap: 12px; border-radius: 14px; }
+.series-source-group .series-card:has([data-series-catalog][open]) { grid-column: 1 / -1; }
+.series-source-group .series-card-heading { grid-template-columns: 88px minmax(0, 1fr); grid-template-areas: "poster name" "poster tools" "overview overview"; padding: 0; gap: 8px 15px; align-items: start; }
+.series-source-group .series-card-heading .series-poster { width: 88px; height: 132px; border-radius: 9px; }
+.series-source-group .series-poster.is-type { padding: 10px 9px; }
+.series-source-group .series-poster.is-type b { font-size: 33px; }
+.series-source-group .series-poster.is-type small { font-size: 11px; }
+.series-source-group .series-card .series-card-pick { top: 5px; left: 5px; padding: 0; min-height: 0; }
+.series-source-group .series-card-name { gap: 6px; padding-top: 2px; }
+.series-source-group .series-card-name h2 { margin: 0; font-size: 23px; line-height: 1.25; overflow-wrap: anywhere; }
+.series-source-group .series-card-name p { font-size: 11.5px; line-height: 1.5; }
+.series-source-group .series-card-name .series-site { font-size: 10.5px; }
+.series-source-group .series-key { margin-left: 5px; padding: 1px 4px; font-size: 9.5px; }
+.series-source-group .series-card-tools { justify-content: flex-start; max-width: none; gap: 2px; align-self: end; flex-wrap: wrap; }
+.series-source-group .series-card-tools .btn { padding: 5px 7px; min-height: 30px; font-size: 11px; }
+.series-category-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.series-category-tags > span { border: 1px solid var(--line); background: var(--raised); border-radius: 5px; color: var(--text-2); font-size: 10px; padding: 2px 6px; line-height: 1.4; }
+.series-source-group .series-overview { gap: 9px; padding-top: 3px; }
+.series-source-group .series-strip { gap: 2px; }
+.series-source-group .series-strip i { width: 8px; height: 11px; border-radius: 2px; }
+.series-source-group .series-metrics { border-bottom: 0; }
+.series-source-group .series-metrics > div { padding: 9px 8px 0; gap: 4px; }
+.series-source-group .series-metrics > div:first-child { padding-left: 0; }
+.series-source-group .series-metrics span { font-size: 10.5px; gap: 5px; white-space: nowrap; }
+.series-source-group .series-metrics span::before { width: 5px; height: 5px; }
+.series-source-group .series-metrics strong { font-size: 21px; line-height: 1.1; }
+.series-source-group .series-metrics strong small { font-size: 11px; }
+.series-show-actions { display: flex; flex-direction: column; gap: 7px; }
+.series-show-buttons { display: flex; flex-wrap: wrap; gap: 7px; }
+.series-show-buttons .btn { min-height: 36px; font-size: 12px; padding: 7px 11px; flex: 1 1 135px; justify-content: center; }
+.series-download-hint { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; margin: 0; font-size: 10.5px; line-height: 1.6; color: var(--faint); }
+.series-download-hint span { color: var(--muted); }
+.series-source-group .series-card > .episode-catalog { padding: 0; }
+.series-source-group .series-card > .episode-catalog > summary { padding: 10px 12px; font-size: 12px; }
+.series-source-group .series-card .episode-catalog-body { padding: 0 12px 12px; gap: 10px; align-items: stretch; }
+.series-source-group .episode-catalog-body > * { flex: 0 0 auto; margin-block: 0; }
+.series-source-group .episode-list { align-content: start; margin-top: 0; }
+.series-source-group .series-scan-status { padding: 10px 12px; font-size: 11.5px; }
+.series-source-group .series-scan-status p { font-size: 11.5px; }
+.series-library-tools .series-filter-row { min-width: 0; }
+.series-library-tools .series-filter-row .filter-search { flex-basis: 220px; }
+.series-library-tools .series-filter-row .filter-control { max-width: 100%; min-width: 0; flex: 0 1 160px; }
+.series-library-tools .series-selection-row { flex-wrap: wrap; min-width: 0; gap: 8px 14px; }
+.series-library-tools .series-pager { margin: 0 0 0 auto; }
+.series-pager { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 18px 0 0; }
+.series-pager > span { font-family: var(--font-mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.series-pager .btn { min-height: 34px; padding: 6px 11px; font-size: 12px; }
+.series-site-progress { display: grid; gap: 9px; margin: 16px 0; }
+.series-site-progress .series-scan-status { margin: 0; }
+.series-site-progress .series-site-progress-footer { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 8px; }
+.series-site-progress-footer span { color: var(--muted); font-size: 12px; }
+@media (min-width: 1100px) {
+  .series-source-group .series-card:has([data-series-catalog][open]) .series-card-heading { grid-template-columns: 88px minmax(0, 1fr) auto; grid-template-areas: "poster name tools" "poster overview overview"; }
+  .series-source-group .series-card:has([data-series-catalog][open]) .series-overview { align-self: end; }
+  .series-source-group .series-card:has([data-series-catalog][open]) .series-show-buttons { justify-content: flex-start; }
+  .series-source-group .series-card:has([data-series-catalog][open]) .series-show-buttons .btn { flex: 0 1 auto; min-width: 150px; }
+}
+@media (max-width: 650px) {
+  .series-source-group .series-library { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .series-source-group .series-card { padding: 13px; }
+  .series-source-group .series-card-heading { grid-template-columns: 76px minmax(0, 1fr); gap: 8px 12px; }
+  .series-source-group .series-card-heading .series-poster { width: 76px; height: 114px; }
+  .series-source-group .series-card-name h2 { font-size: 21px; }
+  .series-source-group .series-card-tools .btn { min-height: 32px; }
+  .series-library-tools .series-filter-row { flex-basis: 100%; gap: 8px; }
+  .series-library-tools .series-filter-row .filter-search { flex: 1 1 100%; max-width: none; }
+  .series-library-tools .series-filter-row .filter-control { flex: 1 1 120px; }
+  .series-library-tools .series-pager { margin-left: 0; }
+  .series-pager { justify-content: center; }
+  .series-source-group .series-card .episode-catalog-body { padding-inline: 9px; }
+}
+.series-site-progress > article { padding: 13px 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); min-width: 0; }
+.series-site-progress-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 9px; font-size: 12px; color: var(--text-2); }
+.series-site-progress-heading strong { min-width: 0; overflow-wrap: anywhere; }
+.series-notice-close { flex: 0 0 auto; width: 36px; height: 36px; margin: -6px -6px -6px 0; color: var(--muted); }
+.series-site-progress > article .series-scan-status { padding: 0; background: none; border: 0; }
+.series-download-report { margin: 0; padding: 9px 11px; border-radius: 8px; color: var(--accent); background: var(--raised); font-size: 11.5px; line-height: 1.65; }
+.series-download-report.is-warning { color: var(--warn-text); }

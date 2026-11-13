@@ -1,0 +1,21 @@
+{
+	# Browsers normally omit SNI when opening an IP address.
+	default_sni {$FRAMEKEEP_DOMAIN}
+}
+
+https://{$FRAMEKEEP_DOMAIN} {
+	request_body {
+		max_size 8MB
+	}
+	# An IP-only site would otherwise use Caddy's local CA by default.
+	tls {
+		issuer acme {
+			dir https://acme-v02.api.letsencrypt.org/directory
+			profile shortlived
+		}
+	}
+	reverse_proxy framekeep:4173 {
+		header_up X-Forwarded-Proto {scheme}
+		flush_interval -1
+	}
+}

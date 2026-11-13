@@ -1,0 +1,11 @@
+.public-workspace-note { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:0 0 22px; margin-bottom:22px; border-bottom:1px solid var(--line); }
+.public-workspace-note > span { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.public-workspace-note > span > svg { color:var(--green, #6ad1a8); }
+.public-workspace-note strong { font-size:13px; font-weight:600; }
+.public-workspace-note small { font-size:11px; color:var(--muted); }
+.public-workspace-note p { margin:0; font-size:12px; line-height:1.7; color:var(--muted); text-align:right; }
+.public-file-preview .version-media { margin:0; }
+@media (max-width:800px) {
+  .public-workspace-note { align-items:flex-start; flex-direction:column; gap:7px; padding-bottom:16px; margin-bottom:18px; }
+  .public-workspace-note p { text-align:left; }
+}

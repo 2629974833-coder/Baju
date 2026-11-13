@@ -1,0 +1,41 @@
+services:
+  framekeep:
+    build: .
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 60s
+    shm_size: "512mb"
+    ports:
+      - "127.0.0.1:${FRAMEKEEP_PUBLISH_PORT:-4173}:4173"
+    environment:
+      FRAMEKEEP_HOST: "0.0.0.0"
+      FRAMEKEEP_PORT: "4173"
+      FRAMEKEEP_DATA_DIR: /var/lib/framekeep
+      FRAMEKEEP_ADMIN_TOKEN: "${FRAMEKEEP_ADMIN_TOKEN:?Set a random token of at least 24 characters in .env}"
+      FRAMEKEEP_ALLOWED_HOSTS: "${FRAMEKEEP_ALLOWED_HOSTS:-localhost,127.0.0.1,[::1],testserver}"
+      FRAMEKEEP_MAX_DOWNLOAD_BYTES: "${FRAMEKEEP_MAX_DOWNLOAD_BYTES:-2147483648}"
+      FRAMEKEEP_MIN_FREE_BYTES: "${FRAMEKEEP_MIN_FREE_BYTES:-536870912}"
+      FRAMEKEEP_FONT_PATH: /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
+      FRAMEKEEP_TRUST_FAKE_DNS: "${FRAMEKEEP_TRUST_FAKE_DNS:-0}"
+    volumes:
+      - framekeep_data:/var/lib/framekeep
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import base64,json,os,urllib.request;
+          token=base64.b64encode(('admin:'+os.environ['FRAMEKEEP_ADMIN_TOKEN']).encode()).decode();
+          request=urllib.request.Request('http://127.0.0.1:4173/api/ready',headers={'Authorization':'Basic '+token});
+          result=json.load(urllib.request.urlopen(request,timeout=5));
+          assert result.get('ready') is True
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+volumes:
+  framekeep_data:

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <link rel="icon" href="assets/favicon.svg">
+  <link rel="stylesheet" href="framekeep.css">
+  <link rel="stylesheet" href="chunlou-connect.css">
+  <title>关联春楼账号 · 拾帧</title>
+</head>
+<body>
+  <main class="account-connect">
+    <a class="back" href="/#sites">← 返回拾帧来源</a>
+    <header>
+      <h1>关联春楼账号</h1>
+      <div class="setup-only">
+        <p>请在已登录春楼的桌面浏览器中打开本页。如果你正在 Codex 中操作，可先<button type="button" class="inline-action" id="copy-panel-link" disabled>复制本页地址</button>。</p>
+        <p class="inline-feedback" id="copy-panel-feedback" role="status"></p>
+        <input type="text" id="panel-link" aria-label="本机授权页地址" readonly hidden>
+      </div>
+    </header>
+    <ol class="connect-steps">
+      <li class="setup-only"><h2>在浏览器里安装书签</h2>
+        <p>把下方虚线框拖到浏览器顶部的书签栏。Chrome 可按 <kbd>⌘ ⇧ B</kbd>（Mac）或 <kbd>Ctrl + Shift + B</kbd>（Windows）显示书签栏。</p>
+        <div class="install-actions">
+          <a id="bookmark" class="bookmark" title="关联春楼账号" aria-label="拖到书签栏，安装关联春楼账号" aria-disabled="true" draggable="true">关联春楼账号</a>
+          <a id="bookmark-file" class="file-action" download="拾帧-春楼账号书签.html" aria-disabled="true">下载书签文件</a>
+        </div>
+        <p class="inline-feedback" id="bookmark-help" role="status"></p>
+        <details id="manual-update"><summary>更新已有书签</summary>
+          <p>在书签管理器中编辑「关联春楼账号」，用下方的地址替换原地址，再保存。这里是书签脚本，不含账号信息。</p>
+          <input id="bookmark-address" type="text" aria-label="新版书签地址" readonly spellcheck="false">
+        </details>
+        <details id="import-steps"><summary>如何导入下载的书签文件？</summary>
+          <p><strong>Chrome</strong>　打开右上角菜单 → 书签和清单 → 导入书签和设置，选择 HTML 书签文件。</p>
+          <p><strong>Safari</strong>　打开「文件」→「从文件或文件夹导入浏览数据」，选择下载的 HTML 文件。</p>
+          <p>导入后，可在浏览器的书签菜单或「已导入」文件夹找到「关联春楼账号」。</p>
+        </details>
+      </li>
+      <li class="setup-only"><h2>去春楼页面点击已安装的书签</h2><p>切到已登录的春楼标签页，从浏览器顶部的书签栏或书签菜单点「关联春楼账号」。如果还没打开官网，可点下方按钮。</p><button id="open-site" disabled>打开春楼</button></li>
+      <li class="confirm-step"><h2>在拾帧确认保存</h2><p>确认后，拾帧会向春楼核对账号，并将会话加密保存在这台电脑上。</p><button class="primary" id="confirm-save" disabled>确认保存</button></li>
+    </ol>
+    <div class="feedback"><p id="status" role="status" aria-live="polite">正在连接本机拾帧…</p>
+      <button type="button" id="restart" hidden>重新检查</button>
+      <button type="button" id="return-source" hidden>返回春楼标签页</button>
+      <a id="open-source" href="https://chunlou.tv/feed" target="_blank" rel="noopener noreferrer" hidden>打开春楼官网</a>
+      <a id="update-bookmark" hidden>更新已有书签</a>
+      <a href="/#sites" id="return-panel" hidden>返回来源面板</a>
+    </div>
+    <noscript>请启用 JavaScript 后重新打开本页。</noscript>
+  </main>
+  <script type="module" src="chunlou-connect.js"></script>
+</body>
+</html>

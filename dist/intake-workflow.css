@@ -1,0 +1,30 @@
+.home-intake-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:24px; }
+.home-intake-heading h1 { margin-bottom:8px; }
+.home-intake-heading p { color:var(--muted); font-size:14px; margin:0; }
+.home-pending { border:1px solid var(--line); border-radius:var(--radius,16px); background:var(--panel); padding:0 20px; }
+.home-pending > summary { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 0; list-style:none; cursor:pointer; }
+.home-pending > summary::-webkit-details-marker { display:none; }
+.home-pending > summary span { display:grid; gap:6px; }
+.home-pending > summary strong { font-size:15px; }
+.home-pending > summary small { color:var(--muted); font-size:12px; }
+.home-pending[open] > summary > svg { transform:rotate(180deg); }
+.home-pending-tools { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+.home-pending-tools .input { flex:1 1 240px; min-width:0; }
+.home-pending-list { border-top:1px solid var(--line); }
+.home-pending-row { display:grid; grid-template-columns:18px minmax(0,1fr) auto auto; align-items:center; gap:12px; border-bottom:1px solid var(--line); padding:12px 0; }
+.home-pending-row > small { color:var(--muted); font-size:12px; }
+.home-pending-title { display:flex; align-items:center; gap:12px; padding:0; min-width:0; border:0; background:none; text-align:left; color:var(--text); cursor:pointer; }
+.home-pending-title svg { flex:none; color:var(--muted); }
+.home-pending-title span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:13px; }
+.home-pending-paging { display:flex; justify-content:flex-end; align-items:center; gap:12px; padding:12px 0; color:var(--muted); font-size:12px; }
+.home-pending-list:last-child { margin-bottom:20px; }
+@media(max-width:650px) {
+  .home-intake-heading { align-items:flex-start; gap:12px; }
+  .home-intake-heading h1 { font-size:30px; }
+  .home-intake-heading p { font-size:12px; line-height:1.6; max-width:220px; }
+  .home-intake-heading > .btn { font-size:12px; flex-shrink:0; }
+  .home-pending { padding:0 14px; }
+  .home-pending-row { gap:8px; grid-template-columns:18px minmax(0,1fr) auto; }
+  .home-pending-row > small { display:none; }
+  .home-pending-tools .input { flex-basis:100%; }
+}

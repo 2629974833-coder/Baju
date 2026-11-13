@@ -1,0 +1,40 @@
+# Apply after compose.production.yaml (and compose.ip.yaml for an IP-only deployment).
+# A cookie selects an isolated visitor workspace; no shared administrator session.
+services:
+  framekeep:
+    mem_limit: 1536m
+    pids_limit: 384
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      FRAMEKEEP_PUBLIC_MODE: "1"
+      FRAMEKEEP_ADMIN_TOKEN: ""
+      FRAMEKEEP_MAX_DOWNLOAD_BYTES: "${FRAMEKEEP_MAX_DOWNLOAD_BYTES:-1073741824}"
+      FRAMEKEEP_MIN_FREE_BYTES: "${FRAMEKEEP_MIN_FREE_BYTES:-1073741824}"
+      FRAMEKEEP_PUBLIC_RETENTION_HOURS: "${FRAMEKEEP_PUBLIC_RETENTION_HOURS:-24}"
+      FRAMEKEEP_PUBLIC_MAX_ACTIVE_WORKSPACES: "${FRAMEKEEP_PUBLIC_MAX_ACTIVE_WORKSPACES:-2}"
+      FRAMEKEEP_PUBLIC_MAX_WORKSPACES: "${FRAMEKEEP_PUBLIC_MAX_WORKSPACES:-64}"
+      FRAMEKEEP_PUBLIC_WORKSPACE_BYTES: "${FRAMEKEEP_PUBLIC_WORKSPACE_BYTES:-2147483648}"
+      FRAMEKEEP_PUBLIC_TOTAL_BYTES: "${FRAMEKEEP_PUBLIC_TOTAL_BYTES:-6442450944}"
+      FRAMEKEEP_PUBLIC_IDLE_SECONDS: "${FRAMEKEEP_PUBLIC_IDLE_SECONDS:-60}"
+      FRAMEKEEP_PUBLIC_SECURE_COOKIE: "1"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import json,urllib.request;
+          result=json.load(urllib.request.urlopen('http://127.0.0.1:4173/api/ready',timeout=10));
+          assert result.get('ready') is True
+      timeout: 15s
+  caddy:
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
