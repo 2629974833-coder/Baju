@@ -14,7 +14,7 @@ import {
   tickJobs,
   normalizeSiteUrl,
   normalizeScanUrl,
-} from "./model.js?v=20261113-public-download-2";
+} from "./model.js?v=20261115-sharing-preview";
 import {
   renderSites,
   renderAuthModal,
@@ -37,7 +37,8 @@ import { downloadRequest, parseDownloadOptions, renderDownloadOptions, renderDow
 import { contentKinds, classificationLabel, matchesContent, renderClassification } from "./content-view.js";
 import { changedRuleFields, ruleRequest } from "./automation-view.js";
 import { createApiClient } from "./real-api.js";
-import { createSessionPanel } from "./real-session.js";
+import { createSessionPanel } from "./real-session.js?v=20261115-sharing-preview";
+import {bindMediaActions} from './media-actions.js';
 import { bindMotionEditor, newMotionDraft } from "./motion-editor.js";
 import { PROCESSING_DEFAULTS, renderRealProcess, renderProcessingJobs, processingRequest, studioBatch, glyphRequest, bindProcessingRegion, updateProcessingPreview } from "./processing-view.js";
 import { groupLocalAssets } from "./asset-series.js";
@@ -48,7 +49,7 @@ import {publicWorkspace, workspacePage, renderWorkspaceNotice, saveOriginalLink,
 
 const api = createApiClient();
 const STORAGE = "framekeep-prototype-v1";
-import { availableForDownload, freshResultView, intakeScopes, renderIntakeResult, reservedAssets, resultItems, resultRoute, suggestScope } from "./intake-results.js?v=20261113-public-download-2";
+import { availableForDownload, freshResultView, intakeScopes, renderIntakeResult, reservedAssets, resultItems, resultRoute, suggestScope } from "./intake-results.js?v=20261115-sharing-preview";
 import { intakeDestination, homePendingAssets, renderHomePending } from "./intake-workflow.js";
 
 const pages = {
@@ -1899,7 +1900,7 @@ document.addEventListener("submit", async (event) => {
   }
 });
 document.addEventListener("keydown", (event) => {
-  if (!state || event.isComposing || ui.modal?.type === "remote") return;
+  if (!state || event.isComposing || ui.modal?.type === "remote" || event.target.closest?.('.media-action-dialog')) return;
   if (ui.modal?.type === "palette" && event.target.id === "palette-q" && ["ArrowDown", "ArrowUp", "Enter"].includes(event.key)) {
     event.preventDefault();
     const items = paletteItems(ui.modal);
@@ -2051,6 +2052,11 @@ async function boot() {
       if (workspacePage(state, ui.page) !== ui.page) { ui.page = "home"; history.replaceState(null, "", "#home"); }
     }
     serviceError = "";
+    const processAsset = new URLSearchParams(location.search).get('processAsset');
+    if (isReal() && !publicWorkspace(state) && ui.page === 'process' && hasOriginal(findAsset(processAsset))) {
+      receiveStudioAssets([processAsset]);
+      ui.processingDraft.options.mode = 'remove';
+    }
     if (location.hash === "#discover") history.replaceState(null, "", "#home");
     renderShell();
     if (isReal() && ui.page === "results") void refreshResult(true);
@@ -2112,6 +2118,7 @@ window.addEventListener("pagehide", clearWorkspacePress);
 function workspaceInteractionActive() {
   return Boolean(workspacePress !== null || ui.modal || (ui.page === "home" && ui.homeBusy) || ui.processingBusy || ui.operations.busy
     || document.querySelector("details.menu[open]")
+    || document.querySelector('.media-action-dialog[open]')
     || ["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement?.tagName)
     || $("[data-motion-editor]")
     || $('[data-region-toggle][aria-pressed="true"]')
@@ -3662,4 +3669,15 @@ setInterval(() => {
   )
     renderPage();
 }, 1500);
+bindMediaActions({
+  getAsset: findAsset,
+  canProcess: () => isReal() && state.publicMode !== true,
+  onProcess: id => {
+    closeModal();
+    receiveStudioAssets([id]);
+    ui.processingDraft.options.mode = 'remove';
+    navigate('process');
+  },
+  toast,
+});
 boot();

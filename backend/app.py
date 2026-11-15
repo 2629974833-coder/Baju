@@ -197,7 +197,8 @@ class SettingsInput(Payload):
 
 
 class BrowserInput(Payload):
-    type: Literal["click", "key", "text", "scroll", "navigate", "tab"]
+    type: Literal["click", "drag", "key", "text", "scroll", "navigate", "tab"]
+    points: list[dict[str, float]] = Field(default_factory=list, max_length=256)
     x: float = Field(default=0, ge=0, lt=1280)
     y: float = Field(default=0, ge=0, lt=800)
     key: str = Field(default="", max_length=100)
@@ -1165,7 +1166,7 @@ def create_app(settings=None, *, browser=None, scanner=None, downloader=None, po
         store.mutate(update)
         return {"updated": True}
 
-    @app.get("/api/assets/{identifier}/file")
+    @app.api_route("/api/assets/{identifier}/file", methods=["GET", "HEAD"])
     async def asset_file(identifier: str, download: bool = False):
         asset = asset_for(identifier)
         try:

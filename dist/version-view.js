@@ -1,4 +1,5 @@
 import { escapeHtml as esc, formatSize, icon } from './ui.js';
+import {renderMediaMenu} from './media-menu.js';
 
 export function hasOriginal(asset) {
   return ['downloaded', 'processed'].includes(asset?.status) && ['image', 'video'].includes(asset?.kind);
@@ -35,9 +36,9 @@ export function versionFileUrl(asset, versionId = 'original') {
     ? `${base}/versions/${encodeURIComponent(versionId)}/file` : null;
 }
 
-function media(asset, url, label) {
+function media(asset, url, label, versionId = 'original') {
   return `<figure class="version-media"><figcaption>${esc(label)}</figcaption>${asset.kind === 'video'
-    ? `<video src="${url}" controls preload="metadata" aria-label="${esc(label)}"></video>`
+    ? `<video src="${url}" controls playsinline controlslist="nodownload noplaybackrate noremoteplayback" disablepictureinpicture disableremoteplayback preload="metadata" aria-label="${esc(label)}"></video>${renderMediaMenu(asset, versionId)}`
     : `<img src="${url}" alt="${esc(label)}">`}</figure>`;
 }
 
@@ -52,7 +53,7 @@ export function renderVersionWorkspace(asset, { versionId = 'original', compare 
   const coverage = selected?.removalMethod === 'chunlou-glyph' && Number.isInteger(selected.glyphFrames) && Number.isInteger(selected.totalFrames)
     ? ` · 识别并修复 ${selected.glyphFrames} / ${selected.totalFrames} 帧` : '';
   const title = selected?.label || '原始文件';
-  return `<section class="version-workspace"><div class="version-toolbar"><label>查看版本<select class="select" data-real-version data-id="${esc(asset.id)}" aria-label="查看文件版本"><option value="original" ${current === 'original' ? 'selected' : ''}>原始文件</option>${versions.map((version, index) => `<option value="${esc(version.id)}" ${current === version.id ? 'selected' : ''}>版本 ${index + 1} · ${esc(version.label || '处理成品')}</option>`).join('')}</select></label><button class="btn btn-secondary" data-action="compare-version" data-id="${esc(asset.id)}" aria-pressed="${comparison}" ${selected ? '' : 'disabled'}>${icon('columns', 14)}${comparison ? '只看当前版本' : '对比原件'}</button><a class="btn btn-primary" href="${currentUrl}?download=true" download>${icon('download', 14)}${selected ? '保存此版本' : '保存原件'}</a></div><div class="${comparison ? 'version-comparison' : 'version-single'}">${comparison ? media(asset, originalUrl, '原始文件') : ''}${media(asset, currentUrl, title)}</div>${selected ? `<p class="version-meta">${Number(selected.width) || 0} × ${Number(selected.height) || 0} · ${formatSize((Number(selected.sizeBytes) || 0) / 1024 ** 2)} · ${esc(selected.createdAt || '')}${coverage}</p>` : ''}<p class="version-preservation">${icon('shield', 13)}原件始终保留，处理结果另存为独立版本。${comparison && asset.kind === 'video' ? '两侧视频可分别播放检查。' : ''}</p></section>`;
+  return `<section class="version-workspace"><div class="version-toolbar"><label>查看版本<select class="select" data-real-version data-id="${esc(asset.id)}" aria-label="查看文件版本"><option value="original" ${current === 'original' ? 'selected' : ''}>原始文件</option>${versions.map((version, index) => `<option value="${esc(version.id)}" ${current === version.id ? 'selected' : ''}>版本 ${index + 1} · ${esc(version.label || '处理成品')}</option>`).join('')}</select></label><button class="btn btn-secondary" data-action="compare-version" data-id="${esc(asset.id)}" aria-pressed="${comparison}" ${selected ? '' : 'disabled'}>${icon('columns', 14)}${comparison ? '只看当前版本' : '对比原件'}</button><a class="btn btn-primary" href="${currentUrl}?download=true" download>${icon('download', 14)}${selected ? '保存此版本' : '保存原件'}</a></div><div class="${comparison ? 'version-comparison' : 'version-single'}">${comparison ? media(asset, originalUrl, '原始文件') : ''}${media(asset, currentUrl, title, current)}</div>${selected ? `<p class="version-meta">${Number(selected.width) || 0} × ${Number(selected.height) || 0} · ${formatSize((Number(selected.sizeBytes) || 0) / 1024 ** 2)} · ${esc(selected.createdAt || '')}${coverage}</p>` : ''}<p class="version-preservation">${icon('shield', 13)}原件始终保留，处理结果另存为独立版本。${comparison && asset.kind === 'video' ? '两侧视频可分别播放检查。' : ''}</p></section>`;
 }
 
 export function renderVersionRecords(asset) {

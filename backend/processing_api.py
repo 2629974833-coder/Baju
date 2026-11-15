@@ -86,7 +86,7 @@ def create_processing_router(store, queue, settings):
         except KeyError:
             raise HTTPException(404, "找不到处理任务") from None
 
-    @router.get("/api/assets/{identifier}/versions/{version_id}/file")
+    @router.api_route("/api/assets/{identifier}/versions/{version_id}/file", methods=["GET", "HEAD"])
     async def version_file(identifier: str, version_id: str, download: bool = False):
         asset = asset_for(identifier)
         version = asset if version_id == "original" else find(asset.get("versions", []), version_id)

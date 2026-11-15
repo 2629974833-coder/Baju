@@ -6,6 +6,7 @@ artifacts/
 *.tar.gz
 .venv/
 .framekeep*/
+.preview-data/
 .pytest_cache/
 .ruff_cache/
 __pycache__/

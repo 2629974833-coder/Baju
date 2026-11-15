@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 
 test('direct-download entry and changed modules use the same fresh release cache key', () => {
-  const release = '20261113-public-download-2';
+  const release = '20261115-sharing-preview';
   const index = readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8');
   const app = readFileSync(new URL('../dist/app.js', import.meta.url), 'utf8');
   const entry = [...index.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/g)]

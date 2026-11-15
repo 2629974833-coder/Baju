@@ -1,7 +1,6 @@
 """Local workspace ownership, storage headroom and inexpensive runtime diagnostics."""
 
 import asyncio
-import fcntl
 import importlib.util
 import os
 import re
@@ -11,6 +10,11 @@ import time
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
+
+if os.name == "nt":
+    import msvcrt
+else:
+    import fcntl
 
 
 class WorkspaceBusy(ValueError):
@@ -35,15 +39,28 @@ class WorkspaceLock:
         self.data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         descriptor = None
         try:
+            lock_path = self.data_dir / self.filename
+            if lock_path.is_symlink() or lock_path.is_junction():
+                raise ValueError("工作区锁文件不能是链接")
             descriptor = os.open(
-                self.data_dir / self.filename,
-                os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW,
+                lock_path,
+                os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0),
                 0o600,
             )
             if not stat.S_ISREG(os.fstat(descriptor).st_mode):
                 raise ValueError("工作区锁文件无效")
-            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            os.fchmod(descriptor, 0o600)
+            if os.name == "nt":
+                # Lock a stable byte; the OS releases it when the owner exits.
+                if os.fstat(descriptor).st_size == 0:
+                    os.write(descriptor, b"\0")
+                os.lseek(descriptor, 0, os.SEEK_SET)
+                try:
+                    msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+                except OSError:
+                    raise BlockingIOError() from None
+            else:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                os.fchmod(descriptor, 0o600)
             self._fd, self._pid = descriptor, os.getpid()
             return self
         except BlockingIOError:
@@ -59,7 +76,11 @@ class WorkspaceLock:
         descriptor, self._fd = self._fd, None
         if descriptor is not None:
             if self._pid == os.getpid():
-                fcntl.flock(descriptor, fcntl.LOCK_UN)
+                if os.name == "nt":
+                    os.lseek(descriptor, 0, os.SEEK_SET)
+                    msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
+                else:
+                    fcntl.flock(descriptor, fcntl.LOCK_UN)
             os.close(descriptor)
         self._pid = None
 

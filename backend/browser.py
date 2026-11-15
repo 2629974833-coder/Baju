@@ -296,7 +296,8 @@ class BrowserService:
         descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix=".pending-")
         try:
             with os.fdopen(descriptor, "wb") as stream:
-                os.fchmod(stream.fileno(), 0o600)
+                if hasattr(os, "fchmod"):
+                    os.fchmod(stream.fileno(), 0o600)
                 stream.write(content)
                 stream.flush()
                 os.fsync(stream.fileno())
@@ -528,6 +529,31 @@ class BrowserService:
             if not (math.isfinite(x) and math.isfinite(y) and 0 <= x < 1280 and 0 <= y < 800):
                 raise ValueError("点击坐标超出浏览器画面")
             await page.mouse.click(x, y)
+        elif action_type == "drag":
+            # Replay only the user's path; never locate or solve a challenge.
+            points = action.get("points", [])
+            if not isinstance(points, list) or not 2 <= len(points) <= 256:
+                raise ValueError("拖动需要 2–256 个位置")
+            previous_time = 0
+            for point in points:
+                if not isinstance(point, dict) or set(point) != {"x", "y", "t"}:
+                    raise ValueError("拖动位置格式无效")
+                x, y, t = point["x"], point["y"], point["t"]
+                if (any(type(n) not in (int, float) or not math.isfinite(n) for n in (x, y, t))
+                        or not 0 <= x < 1280 or not 0 <= y < 800
+                        or not previous_time <= t <= 30000):
+                    raise ValueError("拖动位置或时间超出范围")
+                previous_time = t
+            await page.mouse.move(points[0]["x"], points[0]["y"])
+            await page.mouse.down()
+            try:
+                previous_time = points[0]["t"]
+                for point in points[1:]:
+                    await asyncio.sleep(min(0.04, (point["t"] - previous_time) / 1000))
+                    await page.mouse.move(point["x"], point["y"])
+                    previous_time = point["t"]
+            finally:
+                await page.mouse.up()
         elif action_type == "key":
             key = str(action.get("key", ""))
             if not key or len(key) > 100:

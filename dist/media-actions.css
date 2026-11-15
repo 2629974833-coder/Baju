@@ -1,0 +1,20 @@
+.version-media {position:relative;overflow:visible}
+.media-menu {position:absolute;right:12px;bottom:54px;z-index:5;color:#fff;line-height:1.4}
+.media-menu>summary {list-style:none;cursor:pointer;display:grid;place-items:center;width:40px;height:36px;background:#161a18e8;border:1px solid #ffffff45;border-radius:10px;font-size:26px;letter-spacing:2px;box-shadow:0 2px 10px #0003}
+.media-menu>summary::-webkit-details-marker {display:none}
+.media-menu .menu-pop {top:auto;bottom:44px;left:auto;right:0;width:228px;color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 36px #0004;animation:none}
+.media-menu .menu-pop button {min-height:46px;width:100%;text-align:left;padding:12px 15px;font-size:13px}
+.media-action-dialog {width:min(490px,calc(100% - 28px));max-height:calc(100dvh - 28px);overflow:auto;margin:auto;padding:0;border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--text);box-shadow:0 24px 100px #0006}
+.media-action-dialog::backdrop {background:#0009;backdrop-filter:blur(5px)}
+.media-action-dialog header {display:flex;justify-content:space-between;align-items:center;padding:22px 24px;border-bottom:1px solid var(--line)}
+.media-action-dialog h2 {font-size:22px;margin:6px 0 0}
+.media-action-dialog small {color:var(--muted);font-size:11px}
+.media-action-body {padding:22px 24px;line-height:1.7;font-size:13px}
+.media-action-title {font-weight:600;margin:0 0 20px;overflow-wrap:anywhere}
+.media-action-body label {display:block;margin-bottom:8px;color:var(--muted)}
+.media-action-body select {width:100%;min-height:44px}
+.media-watermark-note {margin:12px 0 18px;padding:12px;border:1px solid var(--line);border-radius:10px;color:var(--muted)}
+.media-action-status:not(:empty) {padding:12px;border-radius:10px;background:var(--surface-3);margin:16px 0 0}
+.media-help {color:var(--muted);font-size:12px;line-height:1.8;margin-top:18px}
+.media-action-dialog footer {display:flex;gap:10px;justify-content:flex-end;padding:18px 24px;border-top:1px solid var(--line)}
+@media(max-width:560px) {.media-action-dialog footer {flex-direction:column-reverse}.media-action-dialog footer button {width:100%;min-height:44px}.media-menu {right:8px;bottom:48px}.media-menu .menu-pop {width:208px}.media-action-dialog header,.media-action-body {padding:18px}}

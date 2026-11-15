@@ -105,6 +105,34 @@ function setup(t) {
 
 const settle = async () => { for (let index = 0; index < 5; index++) await Promise.resolve(); };
 
+test('manual drag sends a bounded coordinate path and does not duplicate its click', async t => {
+  const app = setup(t);
+  await app.open();
+  const screen = app.root.querySelector('#remote-screen');
+  await screen.dispatch('pointerdown', {pointerId:1,button:0,clientX:50,clientY:90});
+  await screen.dispatch('pointermove', {pointerId:1,clientX:130,clientY:90});
+  await screen.dispatch('pointerup', {pointerId:1,clientX:260,clientY:90});
+  await screen.dispatch('click', {clientX:260,clientY:90});
+  await settle();
+  const inputs = app.calls.filter(c => c.path.endsWith('/input'));
+  assert.equal(inputs.length, 1);
+  assert.equal(inputs[0].options.body.type, 'drag');
+  assert.equal(inputs[0].options.body.points[0].x, 50);
+  assert.equal(inputs[0].options.body.points.at(-1).x, 260);
+  assert.ok(inputs[0].options.body.points.length <= 256);
+});
+
+test('cancelling a gesture never leaves the remote mouse held down', async t => {
+  const app = setup(t);
+  await app.open();
+  const screen = app.root.querySelector('#remote-screen');
+  await screen.dispatch('pointerdown', {pointerId:2,button:0,clientX:50,clientY:90});
+  await screen.dispatch('pointercancel', {pointerId:2});
+  await screen.dispatch('pointerup', {pointerId:2,clientX:300,clientY:90});
+  await settle();
+  assert.equal(app.calls.filter(c => c.path.endsWith('/input')).length, 0);
+});
+
 test('saving remains visible while input and save requests are pending despite screenshot polls', async (t) => {
   const app = setup(t);
   await app.open();

@@ -107,7 +107,41 @@ export function createSessionPanel({ api, root, onClose, onSaved, onLocalAuth })
     const screen = select('#remote-screen');
     const toolbarFocus = () => select('#remote-address')?.focus({ preventScroll: true });
     root.querySelector('button')?.focus({ preventScroll: true });
-    screen.addEventListener('click', (event) => { screen.focus(); send({ type: 'click', ...coordinates(event) }); }, { signal });
+    screen.draggable = false;
+    let gesture = null, suppressClick = false;
+    screen.addEventListener('pointerdown', (event) => {
+      if (gesture || event.isPrimary === false || event.button > 0) return;
+      event.preventDefault();
+      screen.focus();
+      screen.setPointerCapture?.(event.pointerId);
+      gesture = { id: event.pointerId, start: performance.now(), points: [{...coordinates(event), t: 0}] };
+      suppressClick = true;
+    }, { signal });
+    screen.addEventListener('pointermove', (event) => {
+      if (!gesture || gesture.id !== event.pointerId) return;
+      event.preventDefault();
+      const point = {...coordinates(event), t: Math.min(30000, Math.round(performance.now() - gesture.start))};
+      if (gesture.points.length >= 255) gesture.points = gesture.points.filter((_, i) => i % 2 === 0);
+      if (point.t - gesture.points.at(-1).t >= 16) gesture.points.push(point);
+    }, { signal });
+    screen.addEventListener('pointerup', (event) => {
+      if (!gesture || gesture.id !== event.pointerId) return;
+      event.preventDefault();
+      const current = gesture;
+      gesture = null;
+      screen.releasePointerCapture?.(event.pointerId);
+      const end = {...coordinates(event), t: Math.min(30000, Math.round(performance.now() - current.start))};
+      current.points.push(end);
+      const first = current.points[0];
+      const moved = current.points.some(p => Math.hypot(p.x - first.x, p.y - first.y) > 4);
+      if (moved) message('正在同步你的拖动操作…');
+      send(moved ? {type: 'drag', points: current.points} : {type: 'click', x: end.x, y: end.y}).then(refresh);
+    }, { signal });
+    for (const type of ['pointercancel', 'lostpointercapture']) screen.addEventListener(type, () => { gesture = null; }, { signal });
+    screen.addEventListener('click', (event) => {
+      if (suppressClick) { suppressClick = false; return; }
+      screen.focus(); send({ type: 'click', ...coordinates(event) });
+    }, { signal });
     screen.addEventListener('wheel', (event) => { event.preventDefault(); send({ type: 'scroll', deltaY: event.deltaY, ...coordinates(event) }); }, { passive: false, signal });
     screen.addEventListener('keydown', (event) => {
       if (event.altKey && event.key === 'Escape') {

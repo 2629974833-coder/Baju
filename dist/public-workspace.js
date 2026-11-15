@@ -1,5 +1,6 @@
 import {escapeHtml as esc, icon} from './ui.js';
 import {hasOriginal, versionFileUrl} from './version-view.js';
+import {renderMediaMenu} from './media-menu.js';
 
 export const publicWorkspace = state => state?.mode === 'real' && state.publicMode === true;
 const privatePages = new Set(['process', 'automation', 'settings']);
@@ -20,6 +21,6 @@ export function renderPublicPreview(asset) {
   if (!hasOriginal(asset)) return '';
   const url = versionFileUrl(asset);
   return `<section class="version-workspace public-file-preview"><figure class="version-media"><figcaption>原始文件</figcaption>${asset.kind === 'video'
-    ? `<video src="${url}" controls preload="metadata" aria-label="${esc(asset.title)}"></video>`
+    ? `<video src="${url}" controls playsinline controlslist="nodownload noplaybackrate noremoteplayback" disablepictureinpicture disableremoteplayback preload="metadata" aria-label="${esc(asset.title)}"></video>${renderMediaMenu(asset)}`
     : `<img src="${url}" alt="${esc(asset.title)}">`}</figure></section>`;
 }
