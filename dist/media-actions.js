@@ -1,5 +1,6 @@
 import {escapeHtml as esc} from './ui.js';
 import {versionFileUrl, processedVersions} from './version-view.js';
+import {shareEnvironment} from './share-environment.js';
 
 const SHARE_LIMIT = 128 * 1024 ** 2;
 const saveErrors = {
@@ -35,6 +36,7 @@ export function bindMediaActions({getAsset, canProcess, onProcess, toast}) {
   const close = () => { currentDialog?.close(); currentDialog?.remove(); currentDialog = null; };
   function open(asset, intent, preferred = 'original') {
     close();
+    const environment = shareEnvironment();
     let requestController = null, file = null, busy = false;
     const versions = processedVersions(asset).filter(v => ['remove', 'both'].includes(v.options?.mode || v.mode));
     const clean = asset.shortMedia?.watermark === 'source-clean';
@@ -49,26 +51,26 @@ export function bindMediaActions({getAsset, canProcess, onProcess, toast}) {
       <button type="button" class="btn btn-secondary" data-process ${canProcess() ? '' : 'disabled'}>处理已有水印</button>${canProcess() ? '' : '<p class="hint">当前公开模式未开放水印处理，请在个人工作区使用。</p>'}
       <p class="media-action-status" role="status" aria-live="polite"></p>
       <div class="media-help">${intent === 'share' ? '支持时会打开系统分享窗口，请自行选择微信好友。不会自动发送，也不会把私人下载地址分享出去。' : '苹果手机：可在系统分享窗口选择“存储视频”。安卓手机：下载后可从相册或文件管理中打开。微信内不能直接保存时，请用手机浏览器打开同一工作区后下载。'}</div></div>
-      <footer><button class="btn btn-secondary" data-download>下载视频文件</button><button class="btn btn-primary" data-share>准备视频文件</button></footer>`;
+      <footer><button class="btn btn-secondary" data-download ${intent === 'share' ? 'hidden' : ''}>下载视频文件</button><button class="btn btn-primary" data-share>${intent === 'share' ? '分享给微信好友' : '准备视频文件'}</button></footer>`;
     const choice = dialog.querySelector('select');
     if ([...choice.options].some(o => o.value === preferred)) choice.value = preferred;
     const status = dialog.querySelector('[role=status]');
     const share = dialog.querySelector('[data-share]');
     const download = dialog.querySelector('[data-download]');
     const say = text => { status.textContent = text; };
-    const reset = () => { requestController?.abort(); requestController = null; busy = false; file = null; share.disabled = false; share.textContent = '准备视频文件'; say(''); };
-    choice.addEventListener('change', reset);
+    const reset = () => { requestController?.abort(); requestController = null; busy = false; file = null; share.disabled = false; share.textContent = intent === 'share' ? '分享给微信好友' : '准备视频文件'; say(''); };
+    choice.addEventListener('change', () => { reset(); if (intent === 'share') void prepare(); });
     dialog.addEventListener('close', () => { requestController?.abort(); file = null; dialog.remove(); if (currentDialog === dialog) currentDialog = null; });
     dialog.querySelector('[data-close]').onclick = () => dialog.close();
     dialog.querySelector('[data-process]').onclick = () => { dialog.close(); onProcess(asset.id); };
     download.onclick = async () => {
       const url = versionFileUrl(asset, choice.value);
       download.disabled = true;
-      try { await checkMediaFile(url + '?download=true'); if (dialog.open) { saveMediaFile(url + '?download=true'); say('已交给浏览器下载，请查看下载记录；完成后可在微信选择该视频发送。'); } }
-      catch (error) { if (dialog.open) say(error.message); }
+      try { await checkMediaFile(url + '?download=true'); if (dialog.open) { saveMediaFile(url + '?download=true'); say('已交给浏览器下载，请查看下载记录；完成后可在微信选择该视频发送。'); return true; } }
+      catch (error) { if (dialog.open) say(error.message); return false; }
       finally { download.disabled = false; }
     };
-    // Preparing and sharing use separate clicks so the share call retains a user gesture.
+    // File preparation happens before the click; only a real click invokes system sharing.
     share.onclick = async () => {
       if (busy) return;
       if (file) {
@@ -76,8 +78,12 @@ export function bindMediaActions({getAsset, canProcess, onProcess, toast}) {
         catch (error) { say(error.name === 'AbortError' ? '已取消分享，可重新选择。' : '系统未能分享此文件，请下载后从微信或相册中打开。'); }
         return;
       }
+      if (intent === 'share') { const requested = await download.onclick(); if (requested && dialog.open) say(`已请求浏览器下载视频，并未打开微信。${environment.fallback}`); return; }
+      await prepare();
+    };
+    async function prepare() {
       const url = versionFileUrl(asset, choice.value);
-      if (!globalThis.isSecureContext || !navigator.share || !navigator.canShare) { say('此浏览器不支持分享视频文件。请点“下载视频文件”，保存后从微信发送或移入相册。'); return; }
+      if (!environment.systemShare) { say(`已识别：${environment.label}。无法直接调用文件分享。${environment.fallback}`); return; }
       const controller = requestController = new AbortController();
       busy = true; share.disabled = true; say('正在准备视频文件…');
       try {
@@ -102,13 +108,14 @@ export function bindMediaActions({getAsset, canProcess, onProcess, toast}) {
         const candidate = new File(chunks, `${asset.title.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80)}.${extension}`, {type});
         if (!navigator.canShare({files: [candidate]})) throw new Error('此浏览器不能分享该视频格式，请下载后从微信发送。');
         file = candidate;
-        share.textContent = intent === 'save' ? '打开系统保存选项' : '选择微信好友';
-        say('视频已准备好。点击下方按钮，在系统窗口中完成操作。');
-      } catch (error) { if (!controller.signal.aborted && dialog.open) say(error.message); }
+        share.textContent = intent === 'share' ? '分享给微信好友' : intent === 'save' ? '打开系统保存选项' : '打开系统分享';
+        say(`已识别：${environment.label}。视频已准备好；点击按钮后，在系统分享窗口中选择微信。能否列出微信由当前设备决定。`);
+      } catch (error) { if (!controller.signal.aborted && dialog.open) say(`${error.message} ${intent === 'share' ? environment.fallback : ''}`); }
       finally { if (requestController === controller) { busy = false; share.disabled = false; } }
     };
     document.body.append(dialog);
     dialog.showModal();
+    if (intent === 'share') void prepare();
   }
   document.addEventListener('click', async event => {
     const action = event.target.closest('[data-action^="media-"]');

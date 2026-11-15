@@ -17,4 +17,5 @@
 .media-action-status:not(:empty) {padding:12px;border-radius:10px;background:var(--surface-3);margin:16px 0 0}
 .media-help {color:var(--muted);font-size:12px;line-height:1.8;margin-top:18px}
 .media-action-dialog footer {display:flex;gap:10px;justify-content:flex-end;padding:18px 24px;border-top:1px solid var(--line)}
+.media-action-dialog [hidden] {display:none!important}
 @media(max-width:560px) {.media-action-dialog footer {flex-direction:column-reverse}.media-action-dialog footer button {width:100%;min-height:44px}.media-menu {right:8px;bottom:48px}.media-menu .menu-pop {width:208px}.media-action-dialog header,.media-action-body {padding:18px}}
