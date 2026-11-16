@@ -1,0 +1,11 @@
+{
+  "pages": ["pages/share/index"],
+  "window": {
+    "navigationBarTitleText": "拾帧 · 微信分享验证",
+    "navigationBarBackgroundColor": "#121713",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#0c100e"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

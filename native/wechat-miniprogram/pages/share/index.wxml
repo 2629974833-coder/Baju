@@ -1,0 +1,13 @@
+<view class="screen">
+  <view class="eyebrow">拾帧 / 微信接入验证</view>
+  <view class="heading">把视频交给微信。</view>
+  <view class="description">验证微信自己的好友选择功能。先使用你有权分享的本地视频。</view>
+  <view class="card">
+    <video wx:if="{{ready}}" src="{{path}}" controls object-fit="contain"></video>
+    <view wx:else class="empty">选择一段视频，准备后可播放检查。</view>
+    <view class="note">{{note}}</view>
+    <view wx:if="{{error}}" class="error">{{error}}</view>
+    <button bindtap="onSharePress" loading="{{busy}}" disabled="{{busy}}">分享给微信好友</button>
+  </view>
+  <view class="boundary">这是微信接入原型，尚未连接网页的素材库，也不执行去水印。先确认实际微信能接收和转发视频，避免把网页链接当成视频文件。</view>
+</view>

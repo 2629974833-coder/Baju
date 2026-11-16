@@ -1,0 +1,9 @@
+{
+  "description": "Local video forwarding validation; no server credentials or automatic sending",
+  "miniprogramRoot": "./",
+  "compileType": "miniprogram",
+  "appid": "touristappid",
+  "projectname": "framekeep-wechat-share",
+  "setting": {"es6": true, "minified": true},
+  "libVersion": "latest"
+}
