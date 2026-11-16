@@ -27,7 +27,9 @@ import org.json.JSONObject;
 public class WebActivity extends Activity {
     private WebView web;
     private TextView status;
-    private String trustedOrigin;
+    private volatile String trustedOrigin;
+    private volatile boolean bundledUi;
+    private int pageGeneration;
     private WebMessagePort port;
     private File partial;
     private FileOutputStream output;
@@ -51,9 +53,12 @@ public class WebActivity extends Activity {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 return !origin(request.getUrl()).equals(trustedOrigin);
             }
-            @Override public void onPageStarted(WebView view,String url,Bitmap icon) { disconnect(); }
+            @Override public void onPageStarted(WebView view,String url,Bitmap icon) { pageGeneration++;disconnect(); }
             @Override public void onPageFinished(WebView view,String url) {
                 if (!origin(Uri.parse(url)).equals(trustedOrigin)) return;
+                if (!bundledUi) { probeOriginalLogin(pageGeneration);return; }
+                String mainPath=Uri.parse(url).getPath();
+                if (!("/".equals(mainPath)||"/index.html".equals(mainPath))) return;
                 disconnect();
                 WebMessagePort[] pair = web.createWebMessageChannel(); port = pair[0];
                 final WebMessagePort current = port;
@@ -67,7 +72,7 @@ public class WebActivity extends Activity {
                 status.setText("已连接网页分享。请先拾取并下载视频，再点视频右下角的分享按钮。");
             }
             @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request) {
-                if (!"GET".equals(request.getMethod()) || !origin(request.getUrl()).equals(trustedOrigin)) return null;
+                if (!bundledUi || !"GET".equals(request.getMethod()) || !origin(request.getUrl()).equals(trustedOrigin)) return null;
                 String path = request.getUrl().getPath();
                 if (path == null || path.equals("/") || path.equals("/index.html")) path = "/index.html";
                 if (path.startsWith("/api/") || path.contains("..") || !path.matches("/[A-Za-z0-9_./-]+")) return null;
@@ -88,12 +93,31 @@ public class WebActivity extends Activity {
         open.setOnClickListener(v->{
             String value=address.getText().toString().trim(); Uri uri=Uri.parse(value);
             if (!("https".equals(uri.getScheme()) || "http".equals(uri.getScheme())) || uri.getHost()==null || uri.getUserInfo()!=null) { status.setText("请输入完整的网站地址，不要把密码放进网址。");return; }
-            Runnable load=()->{disconnect();trustedOrigin=origin(uri);getPreferences(0).edit().putString("site",value).apply();web.loadUrl(value);};
+            Runnable load=()->{pageGeneration++;disconnect();bundledUi=false;trustedOrigin=origin(uri);status.setText("请先在下方原网站输入访问密码，登录成功后自动进入分享界面。");getPreferences(0).edit().putString("site",value).apply();web.loadUrl(value);};
             if ("http".equals(uri.getScheme())) new AlertDialog.Builder(this).setTitle("这个网址没有加密")
                 .setMessage("登录信息和视频可能被网络中的其他人看到。请确认这是你信任的测试网站；建议使用加密网址。")
                 .setPositiveButton("继续打开",(d,w)->load.run()).setNegativeButton("取消",null).show();
             else load.run();
         });
+    }
+    private void probeOriginalLogin(int generation) {
+        try(java.io.InputStream input=getAssets().open("login-probe.js")) {
+            java.io.ByteArrayOutputStream source=new java.io.ByteArrayOutputStream();
+            byte[] bytes=new byte[4096];int count;while((count=input.read(bytes))!=-1)source.write(bytes,0,count);
+            web.evaluateJavascript(source.toString("UTF-8"),ignored->waitForLogin(generation,0));
+        }catch(Exception error){status.setText("请完成网站登录后，再点“打开网站”重试。");}
+    }
+    private void waitForLogin(int generation,int attempt) {
+        web.postDelayed(()->{
+            if(isDestroyed()||generation!=pageGeneration||bundledUi||!origin(Uri.parse(web.getUrl())).equals(trustedOrigin))return;
+            web.evaluateJavascript("window.__framekeepAuthState || 'pending'",value->{
+                if(isDestroyed()||generation!=pageGeneration||bundledUi)return;
+                if("\"ready\"".equals(value)) {
+                    bundledUi=true;status.setText("登录已确认，正在打开带分享功能的界面…");web.loadUrl(trustedOrigin+"/");
+                }else if("\"pending\"".equals(value)&&attempt<20)waitForLogin(generation,attempt+1);
+                else status.setText("请在原网站输入访问密码。已登录但未切换时，可再点“打开网站”。");
+            });
+        },400);
     }
     private String origin(Uri uri) {
         if(uri==null||uri.getHost()==null||uri.getScheme()==null)return "";

@@ -34,6 +34,7 @@ def main():
     unsigned, aligned = work / 'unsigned.apk', work / 'aligned.apk'
     assets = work / 'assets'
     shutil.copytree(root.parents[1] / 'dist', assets / 'web', dirs_exist_ok=True)
+    shutil.copytree(root / 'assets', assets, dirs_exist_ok=True)
     run(args.build_tools / ('aapt2' + ext), 'link', '-o', unsigned,
         '-I', args.android_jar, '--manifest', root / 'AndroidManifest.xml', '-A', assets)
     packed = work / 'packed.apk'
