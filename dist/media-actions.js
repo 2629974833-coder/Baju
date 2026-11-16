@@ -1,6 +1,7 @@
 import {escapeHtml as esc} from './ui.js';
 import {versionFileUrl, processedVersions} from './version-view.js';
 import {shareEnvironment} from './share-environment.js';
+import {getNativeVideoBridge} from './native-video-bridge.js';
 
 const SHARE_LIMIT = 128 * 1024 ** 2;
 const saveErrors = {
@@ -11,7 +12,16 @@ const saveErrors = {
 };
 
 export async function checkMediaFile(url, fetcher = fetch) {
-  const response = await fetcher(url, {method: 'HEAD', credentials: 'same-origin', cache: 'no-store'});
+  let response = await fetcher(url, {method: 'HEAD', credentials: 'same-origin', cache: 'no-store'});
+  // Older Baju services only expose GET on media routes.
+  if (response.status === 405) {
+    response = await fetcher(url, {headers:{Range:'bytes=0-0'},credentials:'same-origin',cache:'no-store'});
+    const headers = new Headers(response.headers);
+    const total = /\/(\d+)$/.exec(headers.get('content-range') || '')?.[1];
+    if (total) headers.set('content-length',total);
+    await response.body?.cancel();
+    response = new Response(null,{status:response.status,headers});
+  }
   if (!response.ok) throw new Error(saveErrors[response.status] || `暂时无法保存文件（状态码 ${response.status}），请稍后重试。`);
   const type = response.headers.get('content-type') || '';
   if (!/^(video\/|audio\/|image\/|application\/octet-stream)/i.test(type)) {
@@ -74,6 +84,17 @@ export function bindMediaActions({getAsset, canProcess, onProcess, toast}) {
     share.onclick = async () => {
       if (busy) return;
       if (file) {
+        const native = getNativeVideoBridge();
+        if (native && intent === 'share') {
+          busy = true; share.disabled = true;
+          const controller = requestController = new AbortController();
+          try {
+            await native.shareVideo(file,{signal:controller.signal,onProgress:(done,total)=>say(`正在把当前网页视频交给应用：${Math.round(done/total*100)}%`)});
+            say('已请求微信接收当前网页视频，请自行选择好友并确认。');
+          } catch (error) {if(dialog.open)say(error.name === 'AbortError'?'已取消分享。':error.message);}
+          finally {if(requestController===controller){busy=false;share.disabled=false;}}
+          return;
+        }
         try { await navigator.share({files: [file], title: asset.title}); say('已交给系统分享窗口，请自行完成选择；网页无法确认是否已发送或存入相册。'); }
         catch (error) { say(error.name === 'AbortError' ? '已取消分享，可重新选择。' : '系统未能分享此文件，请下载后从微信或相册中打开。'); }
         return;
@@ -83,7 +104,7 @@ export function bindMediaActions({getAsset, canProcess, onProcess, toast}) {
     };
     async function prepare() {
       const url = versionFileUrl(asset, choice.value);
-      if (!environment.systemShare) { say(`已识别：${environment.label}。无法直接调用文件分享。${environment.fallback}`); return; }
+      if (!environment.systemShare && !getNativeVideoBridge()) { say(`已识别：${environment.label}。无法直接调用文件分享。${environment.fallback}`); return; }
       const controller = requestController = new AbortController();
       busy = true; share.disabled = true; say('正在准备视频文件…');
       try {
@@ -106,16 +127,19 @@ export function bindMediaActions({getAsset, canProcess, onProcess, toast}) {
         const type = response.headers.get('content-type').split(';')[0];
         const extension = type === 'video/mp4' ? 'mp4' : type === 'video/webm' ? 'webm' : 'mov';
         const candidate = new File(chunks, `${asset.title.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80)}.${extension}`, {type});
-        if (!navigator.canShare({files: [candidate]})) throw new Error('此浏览器不能分享该视频格式，请下载后从微信发送。');
+        if (!getNativeVideoBridge() && !navigator.canShare({files: [candidate]})) throw new Error('此浏览器不能分享该视频格式，请下载后从微信发送。');
         file = candidate;
         share.textContent = intent === 'share' ? '分享给微信好友' : intent === 'save' ? '打开系统保存选项' : '打开系统分享';
-        say(`已识别：${environment.label}。视频已准备好；点击按钮后，在系统分享窗口中选择微信。能否列出微信由当前设备决定。`);
+        say(getNativeVideoBridge() ? '已连接安卓应用。当前网页视频已准备好，点击分享后直接交给微信，无需从相册重新选择。' : `已识别：${environment.label}。视频已准备好；点击按钮后，在系统分享窗口中选择微信。能否列出微信由当前设备决定。`);
       } catch (error) { if (!controller.signal.aborted && dialog.open) say(`${error.message} ${intent === 'share' ? environment.fallback : ''}`); }
       finally { if (requestController === controller) { busy = false; share.disabled = false; } }
     };
     document.body.append(dialog);
     dialog.showModal();
     if (intent === 'share') void prepare();
+    const nativeReady = () => {if(dialog.open && intent === 'share' && !busy && !file)void prepare();};
+    window.addEventListener('framekeep-native-ready',nativeReady);
+    dialog.addEventListener('close',()=>window.removeEventListener('framekeep-native-ready',nativeReady));
   }
   document.addEventListener('click', async event => {
     const action = event.target.closest('[data-action^="media-"]');

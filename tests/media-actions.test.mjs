@@ -28,3 +28,14 @@ test('video menu carries the selected version and escapes user content', () => {
   assert.match(html, /data-version="v&amp;|data-version="v&quot;/);
   assert.equal(renderMediaMenu({kind:'image',status:'downloaded'}), '');
 });
+test('older services without HEAD use a bounded range probe and the total original size', async()=>{
+  const calls=[];let cancelled=false;
+  const response=await checkMediaFile('/file',async(url,options)=>{
+    calls.push(options);
+    if(calls.length===1)return new Response(null,{status:405});
+    return new Response(new ReadableStream({cancel(){cancelled=true;}}),{status:206,headers:{'content-type':'video/mp4','content-length':'1','content-range':'bytes 0-0/12345'}});
+  });
+  assert.equal(calls[1].headers.Range,'bytes=0-0');
+  assert.equal(response.headers.get('content-length'),'12345');
+  assert.equal(cancelled,true);
+});

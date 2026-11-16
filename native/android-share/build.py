@@ -1,7 +1,8 @@
-"""Build a small offline Android test app using the official Android tools and a JDK."""
+"""Build the Android webpage-to-WeChat test app with official Android tools and a JDK."""
 
 import argparse
 import os
+import shutil
 import subprocess
 import zipfile
 from pathlib import Path
@@ -31,11 +32,16 @@ def main():
     run(java, '-cp', args.build_tools / 'lib/d8.jar', 'com.android.tools.r8.D8',
         '--min-api', '26', '--lib', args.android_jar, '--output', dex, archive)
     unsigned, aligned = work / 'unsigned.apk', work / 'aligned.apk'
+    assets = work / 'assets'
+    shutil.copytree(root.parents[1] / 'dist', assets / 'web', dirs_exist_ok=True)
     run(args.build_tools / ('aapt2' + ext), 'link', '-o', unsigned,
-        '-I', args.android_jar, '--manifest', root / 'AndroidManifest.xml')
-    with zipfile.ZipFile(unsigned, 'a', zipfile.ZIP_DEFLATED) as package:
+        '-I', args.android_jar, '--manifest', root / 'AndroidManifest.xml', '-A', assets)
+    packed = work / 'packed.apk'
+    with zipfile.ZipFile(unsigned) as original, zipfile.ZipFile(packed, 'w') as package:
+        for item in original.infolist():
+            package.writestr(item.filename, original.read(item), compress_type=item.compress_type)
         package.write(dex / 'classes.dex', 'classes.dex')
-    run(args.build_tools / ('zipalign' + ext), '-f', '4', unsigned, aligned)
+    run(args.build_tools / ('zipalign' + ext), '-f', '4', packed, aligned)
     key = work / 'test-only.jks'
     if not key.exists():
         run(args.jdk / 'bin' / ('keytool' + ext), '-genkeypair', '-keystore', key,
