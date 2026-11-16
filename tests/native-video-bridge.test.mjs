@@ -44,3 +44,13 @@ test('non-video or empty payloads never reach the native port',async()=>{
     assert.equal(f.calls.length,0);
   } finally {f.close();}
 });
+
+test('save transfers the selected webpage bytes with a save action, not a WeChat action',async()=>{
+  const f=fixture();try {
+    const bytes=Buffer.from('selected webpage video bytes');
+    await f.bridge.saveVideo(new File([bytes],'current.mp4',{type:'video/mp4'}));
+    assert.equal(f.calls[0].action,'save');
+    assert.deepEqual(Buffer.concat(f.received),bytes);
+    assert.equal(f.calls.at(-1).op,'finish');
+  }finally{f.close();}
+});

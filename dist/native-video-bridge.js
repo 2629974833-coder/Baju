@@ -9,25 +9,27 @@ export function connectVideoPort(port) {
     const request = pending.get(reply.id);
     if (!request) return;
     pending.delete(reply.id); clearTimeout(request.timer);
-    reply.ok ? request.resolve(reply) : request.reject(new Error(reply.error || '应用未能接收视频。'));
+    reply.ok ? request.resolve(reply) : request.reject(new Error(reply.error || 'Ӧ��δ�ܽ�����Ƶ��'));
   };
   port.start?.();
   function call(op, values = {}) {
-    if (closed) return Promise.reject(new Error('应用连接已关闭，请刷新页面。'));
+    if (closed) return Promise.reject(new Error('Ӧ�������ѹرգ���ˢ��ҳ�档'));
     const id = String(++serial);
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { pending.delete(id); reject(new Error('应用响应超时，请重试。')); }, 30000);
+      const timer = setTimeout(() => { pending.delete(id); reject(new Error('Ӧ����Ӧ��ʱ�������ԡ�')); }, 30000);
       pending.set(id, {resolve,reject,timer});
       try { port.postMessage(JSON.stringify({id,op,...values})); }
       catch (error) { clearTimeout(timer); pending.delete(id); reject(error); }
     });
   }
   const bridge = {
-    async shareVideo(file, {signal, onProgress = () => {}} = {}) {
-      if (file.type !== 'video/mp4' || file.size <= 0 || file.size > 128 * 1024**2) throw new Error('应用目前接收不超过约 134 MB 的常见视频格式，请选择兼容的视频版本。');
-      const check = () => { if (signal?.aborted) throw new DOMException('已取消','AbortError'); };
+    shareVideo(file, options) { return bridge.transferVideo(file, 'share', options); },
+    saveVideo(file, options) { return bridge.transferVideo(file, 'save', options); },
+    async transferVideo(file, action, {signal, onProgress = () => {}} = {}) {
+      if (file.type !== 'video/mp4' || file.size <= 0 || file.size > 128 * 1024**2) throw new Error('Ӧ��Ŀǰ���ղ�����Լ 134 MB �ĳ�����Ƶ��ʽ����ѡ����ݵ���Ƶ�汾��');
+      const check = () => { if (signal?.aborted) throw new DOMException('��ȡ��','AbortError'); };
       check();
-      await call('begin', {size:file.size,mime:file.type});
+      await call('begin', {size:file.size,mime:file.type,action});
       try {
         let index = 0;
         for (let offset = 0; offset < file.size; offset += 32768) {
@@ -42,7 +44,7 @@ export function connectVideoPort(port) {
         return await call('finish');
       } catch (error) { await call('cancel').catch(() => {}); throw error; }
     },
-    close() { closed = true; port.close(); for (const request of pending.values()) {clearTimeout(request.timer);request.reject(new Error('网页已离开，分享已取消。'));} pending.clear(); },
+    close() { closed = true; port.close(); for (const request of pending.values()) {clearTimeout(request.timer);request.reject(new Error('��ҳ���뿪��������ȡ����'));} pending.clear(); },
   };
   return bridge;
 }

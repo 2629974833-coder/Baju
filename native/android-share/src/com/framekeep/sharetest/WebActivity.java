@@ -4,9 +4,13 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.Intent;
+import android.content.ContentValues;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Base64;
 import android.webkit.HttpAuthHandler;
 import android.webkit.WebMessage;
@@ -21,6 +25,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileInputStream;
+import java.io.OutputStream;
 import java.util.UUID;
 import org.json.JSONObject;
 
@@ -35,17 +41,19 @@ public class WebActivity extends Activity {
     private FileOutputStream output;
     private long expected, received;
     private int sequence;
+    private String transferAction;
+    private File pendingSave;
     private static final long LIMIT = 128L * 1024 * 1024;
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(0,48,0,24);
         LinearLayout bar = new LinearLayout(this);
-        EditText address = new EditText(this); address.setSingleLine(); address.setHint("输入你使用的拾帧网站地址");
+        EditText address = new EditText(this); address.setSingleLine(); address.setHint("������ʹ�õ�ʰ֡��վ��ַ");
         address.setText(getPreferences(0).getString("site", ""));
         bar.addView(address,new LinearLayout.LayoutParams(0,-2,1));
-        Button open = new Button(this); open.setText("打开网站"); bar.addView(open); root.addView(bar);
-        status = new TextView(this); status.setPadding(16,8,16,8); status.setText("在这里打开网站、登录并拾取视频。分享时不需要去相册选择。"); root.addView(status);
+        Button open = new Button(this); open.setText("����վ"); bar.addView(open); root.addView(bar);
+        status = new TextView(this); status.setPadding(16,8,16,8); status.setText("���������վ����¼��ʰȡ��Ƶ������ʱ����Ҫȥ���ѡ��"); root.addView(status);
         web = new WebView(this); root.addView(web,new LinearLayout.LayoutParams(-1,0,1)); setContentView(root);
         web.getSettings().setJavaScriptEnabled(true); web.getSettings().setDomStorageEnabled(true);
         web.getSettings().setAllowFileAccess(false); web.getSettings().setAllowContentAccess(false);
@@ -69,7 +77,7 @@ public class WebActivity extends Activity {
                     }
                 });
                 web.postWebMessage(new WebMessage("framekeep-native-v1",new WebMessagePort[]{pair[1]}),Uri.parse(trustedOrigin));
-                status.setText("已连接网页分享。请先拾取并下载视频，再点视频右下角的分享按钮。");
+                status.setText("��������ҳ����������ʰȡ��������Ƶ���ٵ���Ƶ���½ǵķ�����ť��");
             }
             @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request) {
                 if (!bundledUi || !"GET".equals(request.getMethod()) || !origin(request.getUrl()).equals(trustedOrigin)) return null;
@@ -83,20 +91,20 @@ public class WebActivity extends Activity {
             @Override public void onReceivedHttpAuthRequest(WebView view,HttpAuthHandler handler,String host,String realm) {
                 if (!host.equalsIgnoreCase(Uri.parse(trustedOrigin).getHost()) || (web.getUrl()!=null && !origin(Uri.parse(web.getUrl())).equals(trustedOrigin))) {handler.cancel();return;}
                 LinearLayout fields = new LinearLayout(WebActivity.this); fields.setOrientation(1);
-                EditText user = new EditText(WebActivity.this); user.setHint("用户名（如网站需要）"); fields.addView(user);
-                EditText pass = new EditText(WebActivity.this); pass.setHint("网站密码"); pass.setInputType(129); fields.addView(pass);
-                new AlertDialog.Builder(WebActivity.this).setTitle("登录你输入的网站").setView(fields)
-                    .setPositiveButton("登录",(d,w)->handler.proceed(user.getText().toString(),pass.getText().toString()))
-                    .setNegativeButton("取消",(d,w)->handler.cancel()).setOnCancelListener(d->handler.cancel()).show();
+                EditText user = new EditText(WebActivity.this); user.setHint("�û���������վ��Ҫ��"); fields.addView(user);
+                EditText pass = new EditText(WebActivity.this); pass.setHint("��վ����"); pass.setInputType(129); fields.addView(pass);
+                new AlertDialog.Builder(WebActivity.this).setTitle("��¼���������վ").setView(fields)
+                    .setPositiveButton("��¼",(d,w)->handler.proceed(user.getText().toString(),pass.getText().toString()))
+                    .setNegativeButton("ȡ��",(d,w)->handler.cancel()).setOnCancelListener(d->handler.cancel()).show();
             }
         });
         open.setOnClickListener(v->{
             String value=address.getText().toString().trim(); Uri uri=Uri.parse(value);
-            if (!("https".equals(uri.getScheme()) || "http".equals(uri.getScheme())) || uri.getHost()==null || uri.getUserInfo()!=null) { status.setText("请输入完整的网站地址，不要把密码放进网址。");return; }
-            Runnable load=()->{pageGeneration++;disconnect();bundledUi=false;trustedOrigin=origin(uri);status.setText("请先在下方原网站输入访问密码，登录成功后自动进入分享界面。");getPreferences(0).edit().putString("site",value).apply();web.loadUrl(value);};
-            if ("http".equals(uri.getScheme())) new AlertDialog.Builder(this).setTitle("这个网址没有加密")
-                .setMessage("登录信息和视频可能被网络中的其他人看到。请确认这是你信任的测试网站；建议使用加密网址。")
-                .setPositiveButton("继续打开",(d,w)->load.run()).setNegativeButton("取消",null).show();
+            if (!("https".equals(uri.getScheme()) || "http".equals(uri.getScheme())) || uri.getHost()==null || uri.getUserInfo()!=null) { status.setText("��������������վ��ַ����Ҫ������Ž���ַ��");return; }
+            Runnable load=()->{pageGeneration++;disconnect();bundledUi=false;trustedOrigin=origin(uri);status.setText("�������·�ԭ��վ����������룬��¼�ɹ����Զ�����������档");getPreferences(0).edit().putString("site",value).apply();web.loadUrl(value);};
+            if ("http".equals(uri.getScheme())) new AlertDialog.Builder(this).setTitle("�����ַû�м���")
+                .setMessage("��¼��Ϣ����Ƶ���ܱ������е������˿�������ȷ�����������εĲ�����վ������ʹ�ü�����ַ��")
+                .setPositiveButton("������",(d,w)->load.run()).setNegativeButton("ȡ��",null).show();
             else load.run();
         });
     }
@@ -105,7 +113,7 @@ public class WebActivity extends Activity {
             java.io.ByteArrayOutputStream source=new java.io.ByteArrayOutputStream();
             byte[] bytes=new byte[4096];int count;while((count=input.read(bytes))!=-1)source.write(bytes,0,count);
             web.evaluateJavascript(source.toString("UTF-8"),ignored->waitForLogin(generation,0));
-        }catch(Exception error){status.setText("请完成网站登录后，再点“打开网站”重试。");}
+        }catch(Exception error){status.setText("�������վ��¼���ٵ㡰����վ�����ԡ�");}
     }
     private void waitForLogin(int generation,int attempt) {
         web.postDelayed(()->{
@@ -113,9 +121,9 @@ public class WebActivity extends Activity {
             web.evaluateJavascript("window.__framekeepAuthState || 'pending'",value->{
                 if(isDestroyed()||generation!=pageGeneration||bundledUi)return;
                 if("\"ready\"".equals(value)) {
-                    bundledUi=true;status.setText("登录已确认，正在打开带分享功能的界面…");web.loadUrl(trustedOrigin+"/");
+                    bundledUi=true;status.setText("��¼��ȷ�ϣ����ڴ򿪴��������ܵĽ��桭");web.loadUrl(trustedOrigin+"/");
                 }else if("\"pending\"".equals(value)&&attempt<20)waitForLogin(generation,attempt+1);
-                else status.setText("请在原网站输入访问密码。已登录但未切换时，可再点“打开网站”。");
+                else status.setText("����ԭ��վ����������롣�ѵ�¼��δ�л�ʱ�����ٵ㡰����վ����");
             });
         },400);
     }
@@ -132,6 +140,8 @@ public class WebActivity extends Activity {
             String op=message.getString("op");
             if("begin".equals(op)) {
                 abortTransfer();expected=message.getLong("size");
+                transferAction=message.optString("action","share");
+                if(!"share".equals(transferAction)&&!"save".equals(transferAction))throw new IllegalArgumentException();
                 if(expected<=0||expected>LIMIT||!"video/mp4".equals(message.getString("mime")))throw new IllegalArgumentException();
                 File directory=new File(getCacheDir(),"shared");if(!directory.isDirectory()&&!directory.mkdirs())throw new IllegalStateException();
                 partial=new File(directory,UUID.randomUUID().toString().replace("-","")+".mp4");
@@ -144,20 +154,68 @@ public class WebActivity extends Activity {
                 output.write(bytes);received+=bytes.length;sequence++;
             } else if("finish".equals(op)) {
                 if(output==null||received!=expected)throw new IllegalArgumentException();
-                output.close();output=null;Uri video=Uri.parse("content://com.framekeep.sharetest.video/"+partial.getName());partial=null;
+                output.close();output=null;
+                if("save".equals(transferAction)) {
+                    File completed=partial;
+                    String saved=saveVideo(completed);
+                    partial=null;
+                    status.setText(saved);
+                    replyPort.postMessage(new WebMessage(new JSONObject().put("id",id).put("ok",true).put("message",saved).toString()));
+                    return;
+                }
+                Uri video=Uri.parse("content://com.framekeep.sharetest.video/"+partial.getName());partial=null;
                 Intent send=new Intent(Intent.ACTION_SEND);send.setType("video/mp4");send.setPackage("com.tencent.mm");
-                send.putExtra(Intent.EXTRA_STREAM,video);send.setClipData(ClipData.newRawUri("拾帧网页视频",video));send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                startActivityForResult(send,11);status.setText("当前网页视频已交给微信，请自行选择好友并确认。");
+                send.putExtra(Intent.EXTRA_STREAM,video);send.setClipData(ClipData.newRawUri("ʰ֡��ҳ��Ƶ",video));send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivityForResult(send,11);status.setText("��ǰ��ҳ��Ƶ�ѽ���΢�ţ�������ѡ����Ѳ�ȷ�ϡ�");
             } else if("cancel".equals(op)) abortTransfer();
             else throw new IllegalArgumentException();
             replyPort.postMessage(new WebMessage(new JSONObject().put("id",id).put("ok",true).toString()));
         } catch(Exception error) {
             abortTransfer();
-            try {replyPort.postMessage(new WebMessage(new JSONObject().put("id",id).put("ok",false).put("error","应用未能交接视频。请检查文件格式、完整性及微信是否可用。").toString()));}catch(Exception ignored){}
+            try {replyPort.postMessage(new WebMessage(new JSONObject().put("id",id).put("ok",false).put("error","Ӧ��δ�ܽ�����Ƶ�������ļ���ʽ�������Լ�΢���Ƿ���á�").toString()));}catch(Exception ignored){}
         }
+    }
+    private String saveVideo(File source) throws Exception {
+        if(Build.VERSION.SDK_INT<29) {
+            if(pendingSave!=null)throw new IllegalStateException("���������һ�α��档");
+            Intent create=new Intent(Intent.ACTION_CREATE_DOCUMENT);create.addCategory(Intent.CATEGORY_OPENABLE);
+            create.setType("video/mp4");create.putExtra(Intent.EXTRA_TITLE,"ʰ֡-"+System.currentTimeMillis()+".mp4");
+            pendingSave=source;
+            try {startActivityForResult(create,12);}catch(Exception error){pendingSave=null;throw error;}
+            return "��ѡ���ֻ��ϵı���λ�ã�ȷ�Ϻ�Żᱣ����Ƶ��";
+        }
+        ContentValues values=new ContentValues();
+        values.put(MediaStore.Video.Media.DISPLAY_NAME,"ʰ֡-"+System.currentTimeMillis()+".mp4");
+        values.put(MediaStore.Video.Media.MIME_TYPE,"video/mp4");
+        values.put(MediaStore.Video.Media.RELATIVE_PATH,Environment.DIRECTORY_MOVIES+"/Framekeep");
+        values.put(MediaStore.Video.Media.IS_PENDING,1);
+        Uri destination=getContentResolver().insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,values);
+        if(destination==null)throw new IllegalStateException();
+        try {
+            copyVideo(source,destination);
+            values.clear();values.put(MediaStore.Video.Media.IS_PENDING,0);
+            if(getContentResolver().update(destination,values,null,null)!=1)throw new IllegalStateException();
+        }catch(Exception error){getContentResolver().delete(destination,null,null);throw error;}
+        source.delete();return "��Ƶ�ѱ��浽�ֻ���ᣬ���� Movies/Framekeep �ļ����ҵ���";
+    }
+    private void copyVideo(File source,Uri destination) throws Exception {
+        try(FileInputStream input=new FileInputStream(source);OutputStream target=getContentResolver().openOutputStream(destination)) {
+            if(target==null)throw new IllegalStateException();
+            byte[] bytes=new byte[32768];int count;while((count=input.read(bytes))!=-1)target.write(bytes,0,count);
+        }
+    }
+    @Override protected void onActivityResult(int request,int result,Intent data) {
+        super.onActivityResult(request,result,data);
+        if(request!=12||pendingSave==null)return;
+        File source=pendingSave;pendingSave=null;
+        try {
+            if(result!=RESULT_OK||data==null||data.getData()==null){status.setText("��ȡ��������Ƶ��");return;}
+            copyVideo(source,data.getData());status.setText("��Ƶ�ѱ��浽��ѡ���λ�á�");
+        }catch(Exception error){status.setText("��Ƶ����ʧ�ܣ������ֻ�ʣ��ռ䲢���ԡ�");}
+        finally{source.delete();}
     }
     private void abortTransfer(){try{if(output!=null)output.close();}catch(Exception ignored){}output=null;if(partial!=null)partial.delete();partial=null;}
     private void disconnect(){abortTransfer();if(port!=null)port.close();port=null;}
     @Override public void onBackPressed(){if(web.canGoBack())web.goBack();else super.onBackPressed();}
-    @Override protected void onDestroy(){disconnect();web.destroy();super.onDestroy();}
+    @Override protected void onDestroy(){disconnect();if(pendingSave!=null)pendingSave.delete();web.destroy();super.onDestroy();}
 }

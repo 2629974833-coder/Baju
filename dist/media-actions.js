@@ -5,30 +5,40 @@ import {getNativeVideoBridge} from './native-video-bridge.js';
 
 const SHARE_LIMIT = 128 * 1024 ** 2;
 const saveErrors = {
-  401: '登录已失效，请刷新页面并重新登录后保存。',
-  403: '没有保存此文件的权限，请在原工作区重试。',
-  404: '服务器上的原文件不存在或已被清理，请重新下载该视频。',
-  410: '文件已过期，请重新下载。',
+  401: '��¼��ʧЧ����ˢ��ҳ�沢���µ�¼�󱣴档',
+  403: 'û�б�����ļ���Ȩ�ޣ�����ԭ���������ԡ�',
+  404: '�������ϵ�ԭ�ļ������ڻ��ѱ����������������ظ���Ƶ��',
+  410: '�ļ��ѹ��ڣ����������ء�',
 };
 
-export async function checkMediaFile(url, fetcher = fetch) {
-  let response = await fetcher(url, {method: 'HEAD', credentials: 'same-origin', cache: 'no-store'});
+export async function checkMediaFile(url, fetcher = fetch, {signal, timeoutMs = 20000} = {}) {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  signal?.addEventListener('abort', abort, {once:true});
+  if (signal?.aborted) abort();
+  const timer = setTimeout(abort, timeoutMs);
+  try {
+  let response = await fetcher(url, {method: 'HEAD', credentials: 'same-origin', cache: 'no-store', signal:controller.signal});
   // Older Baju services only expose GET on media routes.
-  if (response.status === 405) {
-    response = await fetcher(url, {headers:{Range:'bytes=0-0'},credentials:'same-origin',cache:'no-store'});
+  if ([404, 405, 501].includes(response.status)) {
+    response = await fetcher(url, {headers:{Range:'bytes=0-0'},credentials:'same-origin',cache:'no-store',signal:controller.signal});
     const headers = new Headers(response.headers);
     const total = /\/(\d+)$/.exec(headers.get('content-range') || '')?.[1];
     if (total) headers.set('content-length',total);
     await response.body?.cancel();
     response = new Response(null,{status:response.status,headers});
   }
-  if (!response.ok) throw new Error(saveErrors[response.status] || `暂时无法保存文件（状态码 ${response.status}），请稍后重试。`);
+  if (!response.ok) throw new Error(saveErrors[response.status] || `��ʱ�޷������ļ���״̬�� ${response.status}�������Ժ����ԡ�`);
   const type = response.headers.get('content-type') || '';
   if (!/^(video\/|audio\/|image\/|application\/octet-stream)/i.test(type)) {
-    throw new Error('服务器没有返回媒体文件，请刷新页面后重试。');
+    throw new Error('������û�з���ý���ļ�����ˢ��ҳ������ԡ�');
   }
-  if (response.headers.get('content-length') === '0') throw new Error('服务器上的文件为空，请重新下载。');
+  if (response.headers.get('content-length') === '0') throw new Error('�������ϵ��ļ�Ϊ�գ����������ء�');
   return response;
+  } catch (error) {
+    if (controller.signal.aborted && !signal?.aborted) throw new Error('�����Ƶ��ʱ��������������ԡ�');
+    throw error;
+  } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
 }
 
 export function saveMediaFile(url, name = '') {
@@ -53,86 +63,108 @@ export function bindMediaActions({getAsset, canProcess, onProcess, toast}) {
     const dialog = document.createElement('dialog');
     currentDialog = dialog;
     dialog.className = 'media-action-dialog';
-    const title = intent === 'share' ? '分享给微信好友' : intent === 'save' ? '保存到手机相册' : '无水印选项';
-    dialog.innerHTML = `<header><div><small>视频文件</small><h2>${title}</h2></div><button type="button" class="icon-button" data-close aria-label="关闭视频操作">×</button></header>
+    const title = intent === 'share' ? '������΢�ź���' : intent === 'save' ? '���浽�ֻ����' : '��ˮӡѡ��';
+    dialog.innerHTML = `<header><div><small>��Ƶ�ļ�</small><h2>${title}</h2></div><button type="button" class="icon-button" data-close aria-label="�ر���Ƶ����">��</button></header>
       <div class="media-action-body"><p class="media-action-title">${esc(asset.title)}</p>
-      <label for="media-file-choice">选择要发送或保存的视频</label><select id="media-file-choice" class="select"><option value="original">${clean ? '源站无水印原视频' : '原始视频 · 水印状态待确认'}</option>${clean ? '' : '<option disabled>源站无水印原视频 · 暂未获取</option>'}${versions.map((v, i) => `<option value="${esc(v.id)}">去水印版本 ${i + 1} · 请检查处理效果</option>`).join('')}</select>
-      <div class="media-watermark-note">${clean ? '来源标记为无水印版本，发送前仍建议播放检查。' : '原视频可能带水印。处理后会生成新版本，复杂背景可能留痕。'}</div>
-      <button type="button" class="btn btn-secondary" data-process ${canProcess() ? '' : 'disabled'}>处理已有水印</button>${canProcess() ? '' : '<p class="hint">当前公开模式未开放水印处理，请在个人工作区使用。</p>'}
+      <label for="media-file-choice">ѡ��Ҫ���ͻ򱣴����Ƶ</label><select id="media-file-choice" class="select"><option value="original">${clean ? 'Դվ��ˮӡԭ��Ƶ' : 'ԭʼ��Ƶ �� ˮӡ״̬��ȷ��'}</option>${clean ? '' : '<option disabled>Դվ��ˮӡԭ��Ƶ �� ��δ��ȡ</option>'}${versions.map((v, i) => `<option value="${esc(v.id)}">ȥˮӡ�汾 ${i + 1} �� ���鴦��Ч��</option>`).join('')}</select>
+      <div class="media-watermark-note">${clean ? '��Դ���Ϊ��ˮӡ�汾������ǰ�Խ��鲥�ż�顣' : 'ԭ��Ƶ���ܴ�ˮӡ��������������°汾�����ӱ����������ۡ�'}</div>
+      <button type="button" class="btn btn-secondary" data-process ${canProcess() ? '' : 'disabled'}>��������ˮӡ</button>${canProcess() ? '' : '<p class="hint">��ǰ����ģʽδ����ˮӡ���������ڸ��˹�����ʹ�á�</p>'}
       <p class="media-action-status" role="status" aria-live="polite"></p>
-      <div class="media-help">${intent === 'share' ? '支持时会打开系统分享窗口，请自行选择微信好友。不会自动发送，也不会把私人下载地址分享出去。' : '苹果手机：可在系统分享窗口选择“存储视频”。安卓手机：下载后可从相册或文件管理中打开。微信内不能直接保存时，请用手机浏览器打开同一工作区后下载。'}</div></div>
-      <footer><button class="btn btn-secondary" data-download ${intent === 'share' ? 'hidden' : ''}>下载视频文件</button><button class="btn btn-primary" data-share>${intent === 'share' ? '分享给微信好友' : '准备视频文件'}</button></footer>`;
+      <div class="media-help">${intent === 'share' ? '֧��ʱ���ϵͳ�������ڣ�������ѡ��΢�ź��ѡ������Զ����ͣ�Ҳ�����˽�����ص�ַ������ȥ��' : 'ƻ���ֻ�������ϵͳ��������ѡ�񡰴洢��Ƶ������׿�ֻ������غ�ɴ������ļ������д򿪡�΢���ڲ���ֱ�ӱ���ʱ�������ֻ��������ͬһ�����������ء�'}</div></div>
+      <footer><p class="media-action-feedback" role="alert"></p><button class="btn btn-secondary" data-download ${intent === 'share' ? 'hidden' : ''}>������Ƶ�ļ�</button><button class="btn btn-primary" data-share>${intent === 'share' ? '������΢�ź���' : '׼����Ƶ�ļ�'}</button></footer>`;
     const choice = dialog.querySelector('select');
     if ([...choice.options].some(o => o.value === preferred)) choice.value = preferred;
     const status = dialog.querySelector('[role=status]');
     const share = dialog.querySelector('[data-share]');
     const download = dialog.querySelector('[data-download]');
-    const say = text => { status.textContent = text; };
-    const reset = () => { requestController?.abort(); requestController = null; busy = false; file = null; share.disabled = false; share.textContent = intent === 'share' ? '分享给微信好友' : '准备视频文件'; say(''); };
+    const say = text => { status.textContent = text; dialog.querySelector('[role=alert]').textContent = text; };
+    const reset = () => { requestController?.abort(); requestController = null; busy = false; file = null; share.disabled = false; share.textContent = intent === 'share' ? '������΢�ź���' : '׼����Ƶ�ļ�'; say(''); };
     choice.addEventListener('change', () => { reset(); if (intent === 'share') void prepare(); });
     dialog.addEventListener('close', () => { requestController?.abort(); file = null; dialog.remove(); if (currentDialog === dialog) currentDialog = null; });
     dialog.querySelector('[data-close]').onclick = () => dialog.close();
     dialog.querySelector('[data-process]').onclick = () => { dialog.close(); onProcess(asset.id); };
     download.onclick = async () => {
+      if (busy) return false;
+      if (getNativeVideoBridge()) {
+        if (!file) await prepare();
+        if (!file || !dialog.open) return false;
+        await transferNative('save');
+        return true;
+      }
       const url = versionFileUrl(asset, choice.value);
-      download.disabled = true;
-      try { await checkMediaFile(url + '?download=true'); if (dialog.open) { saveMediaFile(url + '?download=true'); say('已交给浏览器下载，请查看下载记录；完成后可在微信选择该视频发送。'); return true; } }
+      download.disabled = true; say('���ڼ����Ƶ�ļ���');
+      try { await checkMediaFile(url + '?download=true'); if (dialog.open) { saveMediaFile(url + '?download=true'); say('�ѽ�����������أ���鿴���ؼ�¼����ɺ����΢��ѡ�����Ƶ���͡�'); return true; } }
       catch (error) { if (dialog.open) say(error.message); return false; }
       finally { download.disabled = false; }
     };
+    async function transferNative(action) {
+      const native = getNativeVideoBridge();
+      busy = true; share.disabled = true; download.disabled = true;
+      const controller = requestController = new AbortController();
+      try {
+        const result = await native[action === 'save' ? 'saveVideo' : 'shareVideo'](file, {
+          signal: controller.signal,
+          onProgress: (done, total) => say(`����${action === 'save' ? '����' : '����'}��ǰ��ҳ��Ƶ��${Math.round(done / total * 100)}%`),
+        });
+        if (dialog.open) say(result.message || (action === 'save' ? '��Ƶ�ѱ��浽�ֻ���ᡣ' : '������΢�Ž��յ�ǰ��ҳ��Ƶ��������ѡ����Ѳ�ȷ�ϡ�'));
+      } catch (error) { if (dialog.open) say(error.name === 'AbortError' ? '��ȡ����' : error.message); }
+      finally { if (requestController === controller) { busy = false; share.disabled = false; download.disabled = false; } }
+    }
     // File preparation happens before the click; only a real click invokes system sharing.
     share.onclick = async () => {
       if (busy) return;
       if (file) {
         const native = getNativeVideoBridge();
         if (native && intent === 'share') {
-          busy = true; share.disabled = true;
-          const controller = requestController = new AbortController();
-          try {
-            await native.shareVideo(file,{signal:controller.signal,onProgress:(done,total)=>say(`正在把当前网页视频交给应用：${Math.round(done/total*100)}%`)});
-            say('已请求微信接收当前网页视频，请自行选择好友并确认。');
-          } catch (error) {if(dialog.open)say(error.name === 'AbortError'?'已取消分享。':error.message);}
-          finally {if(requestController===controller){busy=false;share.disabled=false;}}
+          await transferNative('share');
           return;
         }
-        try { await navigator.share({files: [file], title: asset.title}); say('已交给系统分享窗口，请自行完成选择；网页无法确认是否已发送或存入相册。'); }
-        catch (error) { say(error.name === 'AbortError' ? '已取消分享，可重新选择。' : '系统未能分享此文件，请下载后从微信或相册中打开。'); }
+        if (native && intent === 'save') {
+          await transferNative('save');
+          return;
+        }
+        try { await navigator.share({files: [file], title: asset.title}); say('�ѽ���ϵͳ�������ڣ����������ѡ����ҳ�޷�ȷ���Ƿ��ѷ��ͻ������ᡣ'); }
+        catch (error) { say(error.name === 'AbortError' ? '��ȡ��������������ѡ��' : 'ϵͳδ�ܷ������ļ��������غ��΢�Ż�����д򿪡�'); }
         return;
       }
-      if (intent === 'share') { const requested = await download.onclick(); if (requested && dialog.open) say(`已请求浏览器下载视频，并未打开微信。${environment.fallback}`); return; }
+      if (intent === 'share' && !getNativeVideoBridge() && !environment.systemShare) { const requested = await download.onclick(); if (requested && dialog.open) say(`�����������������Ƶ����δ��΢�š�${environment.fallback}`); return; }
       await prepare();
+      if (file && getNativeVideoBridge() && dialog.open) await transferNative(intent === 'save' ? 'save' : 'share');
     };
     async function prepare() {
       const url = versionFileUrl(asset, choice.value);
-      if (!environment.systemShare && !getNativeVideoBridge()) { say(`已识别：${environment.label}。无法直接调用文件分享。${environment.fallback}`); return; }
+      if (!environment.systemShare && !getNativeVideoBridge()) { say(`��ʶ��${environment.label}���޷�ֱ�ӵ����ļ�������${environment.fallback}`); return; }
       const controller = requestController = new AbortController();
-      busy = true; share.disabled = true; say('正在准备视频文件…');
+      let timedOut = false;
+      const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 120000);
+      busy = true; share.disabled = true; download.disabled = true; say('����׼����Ƶ�ļ���');
       try {
-        const head = await checkMediaFile(url);
+        const head = await checkMediaFile(url, fetch, {signal:controller.signal});
         const size = Number(head.headers.get('content-length'));
-        if (!Number.isFinite(size) || size <= 0 || size > SHARE_LIMIT) throw new Error('此视频不适合直接分享，请下载后从微信发送。');
+        if (size > SHARE_LIMIT) throw new Error('����Ƶ�����ݲ�֧��ֱ�ӷ����򱣴浽��ᡣ');
         const response = await fetch(url, {credentials: 'same-origin', signal: controller.signal, cache: 'no-store'});
-        if (!response.ok || !/^video\//i.test(response.headers.get('content-type') || '')) throw new Error('未能读取视频文件，请尝试下载。');
+        if (!response.ok || !/^video\//i.test(response.headers.get('content-type') || '')) throw new Error('δ�ܶ�ȡ��Ƶ�ļ����볢�����ء�');
         const reader = response.body.getReader(), chunks = [];
         let total = 0;
         while (true) {
           const {done, value} = await reader.read();
           if (done) break;
           total += value.byteLength;
-          if (total > SHARE_LIMIT) { await reader.cancel(); throw new Error('视频过大，请下载后从微信发送。'); }
+          if (total > SHARE_LIMIT) { await reader.cancel(); throw new Error('��Ƶ���������غ��΢�ŷ��͡�'); }
           chunks.push(value);
+          say(size > 0 ? `���ڶ�ȡ��Ƶ��${Math.min(100, Math.round(total / size * 100))}%` : `���ڶ�ȡ��Ƶ��${(total / 1024 ** 2).toFixed(1)} MB`);
         }
-        if (total !== size || total === 0) throw new Error('视频传输不完整，请重新准备。');
+        if ((size > 0 && total !== size) || total === 0) throw new Error('��Ƶ���䲻������������׼����');
         if (controller.signal.aborted || !dialog.open) return;
         const type = response.headers.get('content-type').split(';')[0];
         const extension = type === 'video/mp4' ? 'mp4' : type === 'video/webm' ? 'webm' : 'mov';
         const candidate = new File(chunks, `${asset.title.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80)}.${extension}`, {type});
-        if (!getNativeVideoBridge() && !navigator.canShare({files: [candidate]})) throw new Error('此浏览器不能分享该视频格式，请下载后从微信发送。');
+        if (!getNativeVideoBridge() && !navigator.canShare({files: [candidate]})) throw new Error('����������ܷ�������Ƶ��ʽ�������غ��΢�ŷ��͡�');
         file = candidate;
-        share.textContent = intent === 'share' ? '分享给微信好友' : intent === 'save' ? '打开系统保存选项' : '打开系统分享';
-        say(getNativeVideoBridge() ? '已连接安卓应用。当前网页视频已准备好，点击分享后直接交给微信，无需从相册重新选择。' : `已识别：${environment.label}。视频已准备好；点击按钮后，在系统分享窗口中选择微信。能否列出微信由当前设备决定。`);
-      } catch (error) { if (!controller.signal.aborted && dialog.open) say(`${error.message} ${intent === 'share' ? environment.fallback : ''}`); }
-      finally { if (requestController === controller) { busy = false; share.disabled = false; } }
+        share.textContent = intent === 'share' ? '������΢�ź���' : intent === 'save' ? '��ϵͳ����ѡ��' : '��ϵͳ����';
+        say(getNativeVideoBridge() ? '�����Ӱ�׿Ӧ�á���ǰ��ҳ��Ƶ��׼���ã����������ֱ�ӽ���΢�ţ�������������ѡ��' : `��ʶ��${environment.label}����Ƶ��׼���ã������ť����ϵͳ����������ѡ��΢�š��ܷ��г�΢���ɵ�ǰ�豸������`);
+      } catch (error) { if (dialog.open && (timedOut || !controller.signal.aborted)) say(timedOut ? '��ȡ��Ƶ��ʱ��������������ԡ�' : `${error.message} ${intent === 'share' && !getNativeVideoBridge() ? environment.fallback : ''}`); }
+      finally { clearTimeout(timer); if (requestController === controller) { busy = false; share.disabled = false; download.disabled = false; } }
     };
     document.body.append(dialog);
     dialog.showModal();
@@ -155,7 +187,13 @@ export function bindMediaActions({getAsset, canProcess, onProcess, toast}) {
     event.preventDefault();
     if (link.dataset.saving) return;
     link.dataset.saving = 'true';
-    try { await checkMediaFile(link.href); saveMediaFile(link.href, link.download); }
+    try {
+      const native = getNativeVideoBridge();
+      const match = /\/api\/assets\/([^/]+)\/(?:versions\/([^/]+)\/)?file$/.exec(new URL(link.href).pathname);
+      const asset = match && getAsset(decodeURIComponent(match[1]));
+      if (native && asset?.kind === 'video') { open(asset, 'save', match[2] ? decodeURIComponent(match[2]) : 'original'); return; }
+      await checkMediaFile(link.href); saveMediaFile(link.href, link.download);
+    }
     catch (error) { toast(error.message, true); }
     finally { delete link.dataset.saving; }
   }, true);
