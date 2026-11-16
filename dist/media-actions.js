@@ -78,7 +78,7 @@ export function bindMediaActions({getAsset, canProcess, onProcess, toast}) {
     const share = dialog.querySelector('[data-share]');
     const download = dialog.querySelector('[data-download]');
     const say = text => { status.textContent = text; dialog.querySelector('[role=alert]').textContent = text; };
-    const reset = () => { requestController?.abort(); requestController = null; busy = false; file = null; share.disabled = false; share.textContent = intent === 'share' ? '������΢�ź���' : '׼����Ƶ�ļ�'; say(''); };
+    const reset = () => { requestController?.abort(); requestController = null; busy = false; file = null; share.disabled = false; download.disabled = false; share.textContent = intent === 'share' ? '������΢�ź���' : '׼����Ƶ�ļ�'; say(''); };
     choice.addEventListener('change', () => { reset(); if (intent === 'share') void prepare(); });
     dialog.addEventListener('close', () => { requestController?.abort(); file = null; dialog.remove(); if (currentDialog === dialog) currentDialog = null; });
     dialog.querySelector('[data-close]').onclick = () => dialog.close();
